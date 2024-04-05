@@ -233,11 +233,11 @@ public class SmaxDocument {
   /**
    * Insert a SmaxElement into a sub-tree.
    * @param newNode a SmaxElement that must not have child elements.
-   * @param root the root of the sub-tree.
+   * @param subRoot the root of the sub-tree.
    * @param balancing the balancing strategy for intersecting nodes.
    * For START and END balancing strategies, the newNode character span must already be collapsed.
    */
-  private void insertMarkupInto(SmaxElement newNode, SmaxElement root, Balancing balancing) {
+  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing) {
     int newNodeStartPos = newNode.getStartPos();
     int newNodeEndPos = newNode.getEndPos();
     // A child node of root that contains the newNode.
@@ -252,23 +252,28 @@ public class SmaxDocument {
     int newNodeInsertIndex = 0;
     // Go through the list of children once, from first to last and collect special nodes and indexes.
     // The newNodeInsertIndex points to the current child.
-    for (SmaxElement child : root.getChildren()) {
+    for (SmaxElement child : subRoot.getChildren()) {
       int childStartPos = child.getStartPos();
       int childEndPos = child.getEndPos();
-      // Check for a child node that contains the newNode.
       if (childStartPos <= newNodeStartPos && childEndPos >= newNodeEndPos) {
-        // If the newNode is empty and at the start or end of the child, it is kept outside the child.
-        if (newNodeEndPos > newNodeStartPos || (newNodeStartPos > childStartPos && newNodeEndPos < childEndPos)) {
-          // newNode is not empty, or not at child's start or end, the child contains it
+        // The child node contains at least the same content-range as the the newNode.
+        if (newNodeEndPos == newNodeStartPos && (childStartPos == newNodeStartPos || childEndPos == newNodeEndPos)) {
+          // If the newNode is empty and at the start or end of the child, it is kept outside the child.
+          if (newNodeEndPos == childEndPos) {
+            // If the empty newNode is at the end of child, move it outside (at the child's beginning, it is outside already).
+            ++newNodeInsertIndex;
+          }
+        } else if (childStartPos < newNodeStartPos || childEndPos > newNodeEndPos) {
+          // The child node contains a larger content-range as the the newNode, so the child contains the newNode.
           containingChild = child;
-        } else if (newNodeEndPos == childEndPos) {
-          // empty newNode is at the end of child, move it outside (at the child's beginning, it is outside already)
-          ++newNodeInsertIndex;
+        } else {
+          // The child node contains the same content-range as the the newNode, so the newNode contains the child.
+          firstContainedIndex = newNodeInsertIndex++;
         }
-        // containing child found, no need to look further
+        // No need to look further.
         break;
       }
-      // Check for a child node that overlaps with the newNode, or is contained in the newNode.
+      // Check if the child node overlaps with the newNode, or is contained in the newNode.
       if (childStartPos < newNodeEndPos && childEndPos > newNodeStartPos) {
         if (childStartPos < newNodeStartPos) {
           leftIntersected = child;
@@ -336,12 +341,12 @@ public class SmaxDocument {
     } else {
       // Move contained child-nodes into the newNode.
       if (firstContainedIndex >= 0 && newNodeInsertIndex > firstContainedIndex) {
-        List<SmaxElement> newNodeChildren = root.removeChildren(firstContainedIndex, newNodeInsertIndex);
+        List<SmaxElement> newNodeChildren = subRoot.removeChildren(firstContainedIndex, newNodeInsertIndex);
         newNode.setChildren(newNodeChildren);
         newNodeInsertIndex = firstContainedIndex; // Because nodes have been removed.
       }
       // Insert the newNode into the root.
-      root.insertChild(newNodeInsertIndex, newNode);
+      subRoot.insertChild(newNodeInsertIndex, newNode);
     }
   }
 
