@@ -15,6 +15,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.greenmercury.smax.SmaxDocument;
+import org.greenmercury.smax.SmaxException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -31,8 +32,9 @@ public class XmlString {
    * @throws ParserConfigurationException
    * @throws IOException
    * @throws SAXException
+   * @throws SmaxException
    */
-  public static SmaxDocument toSmax(String xmlString) throws ParserConfigurationException, SAXException, IOException {
+  public static SmaxDocument toSmax(String xmlString) throws ParserConfigurationException, SAXException, IOException, SmaxException {
     return DomElement.toSmax(toDomElement(xmlString));
   }
 

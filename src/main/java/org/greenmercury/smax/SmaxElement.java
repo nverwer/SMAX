@@ -220,8 +220,24 @@ public class SmaxElement {
    * @param type The attribute type is one of the strings "CDATA", "ID", "IDREF", "IDREFS", "NMTOKEN", "NMTOKENS", "ENTITY", "ENTITIES", or "NOTATION" (always in upper case).
    * @param value
    * @return  the {@code SmaxElement} itself, now with an extra attribute
+   * @throws SmaxException
    */
-  public SmaxElement setAttribute(String namespaceUri, String localName, String qualifiedName, String type, String value) {
+  public SmaxElement setAttribute(String namespaceUri, String localName, String qualifiedName, String type, String value)
+    throws SmaxException
+  {
+    // The SAX AttributesImpl does not like nulls.
+    if (namespaceUri == null) namespaceUri = "";
+    if (localName == null) localName = "";
+    if (qualifiedName == null) qualifiedName = "";
+    if (localName.length() == 0 && qualifiedName.length() == 0)
+      throw new SmaxException("Error in setAttribute. Both localName and qualifiedName are empty.");
+    if (localName.length() == 0)
+      localName = qualifiedName.contains(":") ? qualifiedName.substring(qualifiedName.indexOf(':')+1) : qualifiedName;
+    if (qualifiedName.length() == 0)
+      qualifiedName = localName;
+    if (type == null || type.length() == 0) type = "CDATA";
+    if (value == null) value = "";
+    // If this attribute already exists, give it another value. Otherwise create it.
     int attrIndex = attributes.getIndex(namespaceUri, localName);
     if (attrIndex < 0) {
       attributes.addAttribute(namespaceUri, localName, qualifiedName, type, value);
@@ -236,8 +252,9 @@ public class SmaxElement {
    * @param localName
    * @param value
    * @return  the {@code SmaxElement} itself
+   * @throws SmaxException
    */
-  public SmaxElement setAttribute(String localName, String value) {
+  public SmaxElement setAttribute(String localName, String value) throws SmaxException {
     return this.setAttribute("", localName, localName, "CDATA", value);
   }
 
@@ -248,8 +265,9 @@ public class SmaxElement {
    * @param qualifiedName
    * @param value
    * @return  the {@code SmaxElement} itself
+   * @throws SmaxException
    */
-  public SmaxElement setAttribute(String namespaceUri, String localName, String qualifiedName, String value) {
+  public SmaxElement setAttribute(String namespaceUri, String localName, String qualifiedName, String value) throws SmaxException {
     return this.setAttribute(namespaceUri, localName, qualifiedName, "CDATA", value);
   }
 

@@ -8,6 +8,7 @@ import org.greenmercury.smax.NamespacePrefixMapping;
 import org.greenmercury.smax.SmaxContent;
 import org.greenmercury.smax.SmaxDocument;
 import org.greenmercury.smax.SmaxElement;
+import org.greenmercury.smax.SmaxException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -32,8 +33,9 @@ public class DomElement {
   /**
    * Construct a SMAX document from a DOM element.
    * @param element
+   * @throws SmaxException
    */
-  public static SmaxDocument toSmax(Element element) {
+  public static SmaxDocument toSmax(Element element) throws SmaxException {
     /**
      * The namespaces and their prefixes that are declared in a DOM element.
      * We use one list instance to avoid making a new one for every element.
@@ -57,8 +59,12 @@ public class DomElement {
    * @param domElement A DOM element.
    * @param currentContent This is changed during the tree-walk.
    * @return The SmaxElement corresponding to the DOM element.
+   * @throws SmaxException
+   * @throws
    */
-  private static SmaxElement domToSmax(Element domElement, StringBuffer currentContent, List<NamespacePrefixMapping> namespaces) {
+  private static SmaxElement domToSmax(Element domElement, StringBuffer currentContent, List<NamespacePrefixMapping> namespaces)
+    throws SmaxException
+  {
     namespaces.clear();
     String elementNamespace = domElement.getNamespaceURI();
     String elementPrefix = domElement.getPrefix();
@@ -67,9 +73,11 @@ public class DomElement {
     if (elementNamespace !=null) {
       namespaces.add(new NamespacePrefixMapping(elementPrefix, elementNamespace));
     }
+    // Make a SMAX element.
+    SmaxElement smaxElement = new SmaxElement(elementNamespace, domElement.getNodeName());
+    smaxElement.setStartPos(currentContent.length());
     // Handle attributes and namespace declarations.
     NamedNodeMap domAttributes = domElement.getAttributes();
-    AttributesImpl smaxAttributes = new AttributesImpl();
     for (int i = 0; i < domAttributes.getLength(); ++i) {
       Node attribute = domAttributes.item(i);
       if (XMLNS_URI.equals(attribute.getNamespaceURI())) {
@@ -80,13 +88,13 @@ public class DomElement {
         }
       } else {
         // This is a real attribute.
-        smaxAttributes.addAttribute(attribute.getNamespaceURI(), attribute.getLocalName(), attribute.getNodeName(), "CDATA", attribute.getTextContent());
+        smaxElement.setAttribute(attribute.getNamespaceURI(), attribute.getLocalName(), attribute.getNodeName(), "CDATA", attribute.getTextContent());
       }
     }
-    // Make a SMAX element.
-    SmaxElement smaxElement = new SmaxElement(elementNamespace, domElement.getLocalName(), domElement.getNodeName(), smaxAttributes).
-        setStartPos(currentContent.length()).
-        setNamespacePrefixMappings(namespaces.toArray(new NamespacePrefixMapping[namespaces.size()]));
+    // Set the namespaces.
+    if (namespaces.size() > 0) {
+      smaxElement.setNamespacePrefixMappings(namespaces.toArray(new NamespacePrefixMapping[namespaces.size()]));
+    }
     // Handle content of the DOM element.
     NodeList childNodes = domElement.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); ++i) {
