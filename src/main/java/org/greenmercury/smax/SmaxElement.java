@@ -3,6 +3,13 @@ package org.greenmercury.smax;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.w3c.dom.Attr;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.TypeInfo;
+import org.w3c.dom.UserDataHandler;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -13,7 +20,7 @@ import org.xml.sax.helpers.AttributesImpl;
  *<p>
  * "If you want creativity, take a zero off your budget. If you want sustainability, take off two zeros." - Jaime Lerner
  */
-public class SmaxElement {
+public class SmaxElement implements org.w3c.dom.Element {
   /**
    * The usual properties of an XML element.
    */
@@ -21,7 +28,7 @@ public class SmaxElement {
   private String namespacePrefix;
   private String localName;
   private String qualifiedName;
-  private AttributesImpl attributes;
+  private SmaxAttributes attributes;
 
   /**
    * An array of namespace prefix mappings, declared on this element.
@@ -149,7 +156,7 @@ public class SmaxElement {
    * @return the namespaceUri
    */
   public String getNamespaceUri() {
-    return namespaceUri;
+    return this.namespaceUri;
   }
 
   /**
@@ -170,6 +177,7 @@ public class SmaxElement {
   /**
    * @return the localName
    */
+  @Override
   public String getLocalName() {
     return localName;
   }
@@ -190,7 +198,7 @@ public class SmaxElement {
    */
   public SmaxElement setName(String namespaceUri, String localName, String qualifiedName) {
     this.namespaceUri = namespaceUri != null ? namespaceUri : "";
-    namespacePrefix = qualifiedName.contains(":") ? qualifiedName.substring(0, qualifiedName.indexOf(':')) : "";
+    this.namespacePrefix = qualifiedName.contains(":") ? qualifiedName.substring(0, qualifiedName.indexOf(':')) : "";
     this.localName = localName;
     this.qualifiedName = qualifiedName;
     return this;
@@ -199,7 +207,8 @@ public class SmaxElement {
   /**
    * @return the attributes
    */
-  public Attributes getAttributes() {
+  @Override
+  public SmaxAttributes getAttributes() {
     return attributes;
   }
 
@@ -208,7 +217,8 @@ public class SmaxElement {
    * @return the {@code SmaxElement} itself
    */
   public SmaxElement setAttributes(Attributes attributes) {
-    this.attributes = attributes != null ? new AttributesImpl(attributes) : new AttributesImpl();
+    this.attributes = new SmaxAttributes(this);
+    if (attributes != null) ((AttributesImpl) this.attributes).setAttributes(attributes);
     return this;
   }
 
@@ -254,8 +264,23 @@ public class SmaxElement {
    * @return  the {@code SmaxElement} itself
    * @throws SmaxException
    */
-  public SmaxElement setAttribute(String localName, String value) throws SmaxException {
+  public SmaxElement setSimpleAttribute(String localName, String value) throws SmaxException {
     return this.setAttribute("", localName, localName, "CDATA", value);
+  }
+
+  /**
+   * Add a CDATA attribute without namespace to this SMAX node, override.
+   * @param localName
+   * @param value
+   * @return  the {@code SmaxElement} itself
+   */
+  @Override
+  public void setAttribute(String localName, String value) {
+    try {
+      this.setAttribute("", localName, localName, "CDATA", value);
+    } catch (SmaxException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -298,6 +323,7 @@ public class SmaxElement {
    * @param namespaceURI
    * @return the namespace prefix, or null if it has not been declared.
    */
+  @Override
   public String lookupPrefix(String namespaceURI) {
     if (namespacePrefixMappings != null) {
       for (NamespacePrefixMapping nspMapping : namespacePrefixMappings) {
@@ -318,6 +344,7 @@ public class SmaxElement {
    * @param prefix
    * @return the namespace uri, or null if it has not been declared.
    */
+  @Override
   public String lookupNamespaceURI(String prefix) {
     if (namespacePrefixMappings != null) {
       for (NamespacePrefixMapping nspMapping : namespacePrefixMappings) {
@@ -337,6 +364,7 @@ public class SmaxElement {
    * Get the parent element of this element.
    * @return the parent element, or {@code null} if there is none.
    */
+  @Override
   public SmaxElement getParentNode() {
     return parentNode;
   }
@@ -351,11 +379,16 @@ public class SmaxElement {
     return this;
   }
 
+  public int getIndexInParent() {
+    if (this.parentNode == null) return -1;
+    return this.parentNode.children.indexOf(this);
+  }
+
   /**
    * @return the children of this node in document order
    */
   public List<SmaxElement> getChildren() {
-    return children;
+    return this.children;
   }
 
   /**
@@ -377,7 +410,7 @@ public class SmaxElement {
    */
   public SmaxElement appendChild(SmaxElement child) {
     child.setParentNode(this);
-    children.add(child);
+    this.children.add(child);
     return this;
   }
 
@@ -423,11 +456,315 @@ public class SmaxElement {
    */
   public boolean matches(SmaxElement pattern) {
     Attributes na = getAttributes();
-    return getNamespaceUri().equals(pattern.getNamespaceUri()) &&
-           getLocalName().equals(pattern.getLocalName()) &&
+    return this.getNamespaceUri().equals(pattern.getNamespaceUri()) &&
+           this.getLocalName().equals(pattern.getLocalName()) &&
            Attribute.stream(pattern.getAttributes())
              .allMatch(pa -> pa.getValue().equals(na.getValue(pa.getURI(), pa.getLocalName())));
   }
 
+
+  /* Methods for org.w3c.dom.Element */
+
+  @Override
+  public String getNodeName() {
+    return qualifiedName;
+  }
+
+  @Override
+  public String getNodeValue() throws DOMException {
+    return null;
+  }
+
+  @Override
+  public void setNodeValue(String nodeValue) throws DOMException {
+  }
+
+  @Override
+  public short getNodeType() {
+    return Node.ELEMENT_NODE;
+  }
+
+  @Override
+  public NodeList getChildNodes() {
+    return new NodeList() {
+      @Override
+      public Node item(int index) {
+        return SmaxElement.this.children.get(index);
+      }
+      @Override
+      public int getLength() {
+        return SmaxElement.this.children.size();
+      }};
+  }
+
+  @Override
+  public Node getFirstChild() {
+    return this.children.get(0);
+  }
+
+  @Override
+  public Node getLastChild() {
+    return this.children.get(this.children.size() - 1);
+  }
+
+  @Override
+  public Node getPreviousSibling() {
+    int indexInParent = this.getIndexInParent();
+    if (indexInParent > 0)
+      return this.parentNode.children.get(indexInParent - 1);
+    else
+      return null;
+  }
+
+  @Override
+  public Node getNextSibling() {
+    int indexInParent = this.getIndexInParent();
+    int lastIndexInParent = this.parentNode.children.size() - 1;
+    if (indexInParent > 0 && indexInParent < lastIndexInParent)
+      return this.parentNode.children.get(indexInParent + 1);
+    else
+      return null;
+  }
+
+  @Override
+  public Document getOwnerDocument() {
+    return null;
+  }
+
+  @Override
+  public Node insertBefore(Node newChild, Node refChild) throws DOMException {
+    int refIndex = this.children.indexOf(refChild);
+    if (refIndex < 0) throw new DOMException(DOMException.NOT_FOUND_ERR, "The reference child is not a child of this element.");
+    if (newChild instanceof SmaxElement) {
+      this.insertChild(refIndex, (SmaxElement)newChild);
+      return newChild;
+    } else {
+      throw new DOMException(DOMException.WRONG_DOCUMENT_ERR, "The inserted node must be a SmaxElement.");
+    }
+  }
+
+  @Override
+  public Node replaceChild(Node newChild, Node oldChild) throws DOMException {
+    int refIndex = this.children.indexOf(oldChild);
+    if (refIndex < 0) throw new DOMException(DOMException.NOT_FOUND_ERR, "The old child is not a child of this element.");
+    if (newChild instanceof SmaxElement) {
+      this.removeChildren(refIndex, refIndex);
+      this.insertChild(refIndex, (SmaxElement)newChild);
+      return oldChild;
+    } else {
+      throw new DOMException(DOMException.WRONG_DOCUMENT_ERR, "The inserted node must be a SmaxElement.");
+    }
+  }
+
+  @Override
+  public Node removeChild(Node oldChild) throws DOMException {
+    int refIndex = this.children.indexOf(oldChild);
+    if (refIndex < 0) throw new DOMException(DOMException.NOT_FOUND_ERR, "The old child is not a child of this element.");
+    this.removeChildren(refIndex, refIndex);
+    return oldChild;
+  }
+
+  @Override
+  public Node appendChild(Node newChild) throws DOMException {
+    if (newChild instanceof SmaxElement) {
+      this.appendChild((SmaxElement)newChild);
+      return newChild;
+    } else {
+      throw new DOMException(DOMException.WRONG_DOCUMENT_ERR, "The inserted node must be a SmaxElement.");
+    }
+  }
+
+  @Override
+  public boolean hasChildNodes() {
+    return !this.children.isEmpty();
+  }
+
+  @Override
+  public Node cloneNode(boolean deep) {
+    if (deep) throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+    return new SmaxElement(this.namespaceUri, this.localName, this.qualifiedName, this.attributes);
+  }
+
+  @Override
+  public void normalize() {
+  }
+
+  @Override
+  public boolean isSupported(String feature, String version) {
+    return false;
+  }
+
+  @Override
+  public String getNamespaceURI() {
+    return this.namespaceUri;
+  }
+
+  @Override
+  public String getPrefix() {
+    return this.getNamespacePrefix();
+  }
+
+  @Override
+  public void setPrefix(String prefix) throws DOMException {
+    this.namespacePrefix = prefix;
+  }
+
+  @Override
+  public boolean hasAttributes() {
+    return this.attributes.getLength() > 0;
+  }
+
+  @Override
+  public String getBaseURI() {
+    return null;
+  }
+
+  @Override
+  public short compareDocumentPosition(Node other) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public String getTextContent() throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public void setTextContent(String textContent) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public boolean isSameNode(Node other) {
+    return this == other;
+  }
+
+  @Override
+  public boolean isDefaultNamespace(String namespaceURI) {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public boolean isEqualNode(Node other) {
+    return this == other;
+  }
+
+  @Override
+  public Object getFeature(String feature, String version) {
+    return null;
+  }
+
+  @Override
+  public Object setUserData(String key, Object data, UserDataHandler handler) {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public Object getUserData(String key) {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public String getTagName() {
+    return this.qualifiedName;
+  }
+
+  @Override
+  public String getAttribute(String name) {
+    return this.attributes.getValue(name);
+  }
+
+  @Override
+  public void removeAttribute(String name) throws DOMException {
+    this.attributes.removeNamedItem(name);
+  }
+
+  @Override
+  public Attr getAttributeNode(String name) {
+    return this.attributes.getNamedItem(name);
+  }
+
+  @Override
+  public Attr setAttributeNode(Attr newAttr) throws DOMException {
+    return this.attributes.setNamedItem(newAttr);
+  }
+
+  @Override
+  public Attr removeAttributeNode(Attr oldAttr) throws DOMException {
+    return this.attributes.removeNamedItemNS(oldAttr.getNamespaceURI(), oldAttr.getLocalName());
+  }
+
+  @Override
+  public NodeList getElementsByTagName(String name) {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public String getAttributeNS(String namespaceURI, String localName) throws DOMException {
+    return this.attributes.getValue(namespaceURI, localName);
+  }
+
+  @Override
+  public void setAttributeNS(String namespaceURI, String qualifiedName, String value) throws DOMException {
+    try {
+      if (qualifiedName.indexOf(':') >= 0) {
+        this.setAttribute(namespaceURI, qualifiedName.substring(qualifiedName.indexOf(':') + 1), qualifiedName, value);
+      } else {
+        this.setAttribute(namespaceURI, qualifiedName, qualifiedName, value);
+      }
+    } catch (SmaxException e) {
+      throw new DOMException(DOMException.NAMESPACE_ERR, e.getMessage());
+    }
+  }
+
+  @Override
+  public void removeAttributeNS(String namespaceURI, String localName) throws DOMException {
+    this.attributes.removeNamedItemNS(namespaceURI, localName);
+  }
+
+  @Override
+  public Attr getAttributeNodeNS(String namespaceURI, String localName) throws DOMException {
+    return this.attributes.getNamedItemNS(namespaceURI, localName);
+  }
+
+  @Override
+  public Attr setAttributeNodeNS(Attr newAttr) throws DOMException {
+    return this.attributes.setNamedItemNS(newAttr);
+  }
+
+  @Override
+  public NodeList getElementsByTagNameNS(String namespaceURI, String localName) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public boolean hasAttribute(String name) {
+    return this.attributes.getIndex(name) > 0;
+  }
+
+  @Override
+  public boolean hasAttributeNS(String namespaceURI, String localName) throws DOMException {
+    return this.attributes.getIndex(namespaceURI, localName) > 0;
+  }
+
+  @Override
+  public TypeInfo getSchemaTypeInfo() {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public void setIdAttribute(String name, boolean isId) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public void setIdAttributeNS(String namespaceURI, String localName, boolean isId) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
+
+  @Override
+  public void setIdAttributeNode(Attr idAttr, boolean isId) throws DOMException {
+    throw new DOMException(DOMException.NOT_SUPPORTED_ERR, "Not implemented.");
+  }
 
 }

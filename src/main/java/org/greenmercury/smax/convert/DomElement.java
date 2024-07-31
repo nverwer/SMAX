@@ -2,7 +2,6 @@ package org.greenmercury.smax.convert;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
 import org.greenmercury.smax.NamespacePrefixMapping;
 import org.greenmercury.smax.SmaxContent;
@@ -18,7 +17,6 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.w3c.dom.bootstrap.DOMImplementationRegistry;
 import org.xml.sax.Attributes;
-import org.xml.sax.helpers.AttributesImpl;
 
 /**
  * SmaxDocument conversions to and from org.w3c.dom.Element

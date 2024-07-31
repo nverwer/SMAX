@@ -8,7 +8,7 @@ import java.util.stream.StreamSupport;
 import org.xml.sax.Attributes;
 
 /**
- * Access individual attributes from a {@code org.xml.sax.Attributes}.
+ * Helper functions to access individual attributes from a {@code org.xml.sax.Attributes}.
  *<p>
  * @author Rakensi
  */

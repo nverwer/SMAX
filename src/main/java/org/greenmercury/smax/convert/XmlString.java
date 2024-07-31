@@ -27,7 +27,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class XmlString {
 
   /**
-   * Construct a SMAX document from an XML text string.
+   * Construct a SMAX document from a serialized XML text string.
    * @param xml
    * @throws ParserConfigurationException
    * @throws IOException
@@ -53,7 +53,7 @@ public class XmlString {
   }
 
   /**
-   * Construct a DOM element from an XML text string.
+   * Construct a DOM element from a serialized XML text string.
    * @param xmlString
    * @return
    * @throws ParserConfigurationException
@@ -69,7 +69,7 @@ public class XmlString {
   }
 
   /**
-   * Construct n XML text string from a DOM element.
+   * Construct an XML text string from a DOM element.
    * @param domElement
    * @return
    * @throws TransformerException

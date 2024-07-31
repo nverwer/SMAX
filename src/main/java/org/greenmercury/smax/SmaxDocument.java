@@ -1,15 +1,10 @@
 package org.greenmercury.smax;
 
-import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
-
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
 
 /**
  * Representation of a SMAX document with separated markup and content.
