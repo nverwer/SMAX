@@ -153,17 +153,17 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * @return the namespaceUri
+   * @return the namespaceUri of this element, or "" (not null) if it is unspecified
    */
   public String getNamespaceUri() {
-    return this.namespaceUri;
+    return this.namespaceUri != null ? this.namespaceUri : "";
   }
 
   /**
-   * @return the namespacePrefix
+   * @return the namespacePrefix of this element, or "" (not null) if it is unspecified
    */
   public String getNamespacePrefix() {
-    return namespacePrefix;
+    return this.namespacePrefix != null ? this.namespacePrefix : "";
   }
 
   /**
@@ -197,7 +197,7 @@ public class SmaxElement implements org.w3c.dom.Element {
    * @return the {@code SmaxElement} itself
    */
   public SmaxElement setName(String namespaceUri, String localName, String qualifiedName) {
-    this.namespaceUri = namespaceUri != null ? namespaceUri : "";
+    this.namespaceUri = namespaceUri;
     this.namespacePrefix = qualifiedName.contains(":") ? qualifiedName.substring(0, qualifiedName.indexOf(':')) : "";
     this.localName = localName;
     this.qualifiedName = qualifiedName;
@@ -328,7 +328,8 @@ public class SmaxElement implements org.w3c.dom.Element {
     if (namespacePrefixMappings != null) {
       for (NamespacePrefixMapping nspMapping : namespacePrefixMappings) {
         if (nspMapping.uri.equals(namespaceURI)) {
-          return nspMapping.prefix;
+          // Never allow an empty namespace prefix.
+          return ("".equals(nspMapping.prefix)) ? null : nspMapping.prefix;
         }
       }
     }
@@ -594,6 +595,10 @@ public class SmaxElement implements org.w3c.dom.Element {
     return false;
   }
 
+  /**
+   * @return the namespace URI of this node, or null if it is unspecified
+   * @see org.w3c.dom.Node#getNamespaceURI()
+   */
   @Override
   public String getNamespaceURI() {
     return this.namespaceUri;
