@@ -206,6 +206,8 @@ public class SmaxElement implements org.w3c.dom.Element {
 
   /**
    * @return the attributes
+   * Note: An empty namespaceUri, localName or qualifiedName of an attribute is "" rather than null.
+   * Some attribute implementations, such as the on in Xerces, would rather have null.
    */
   @Override
   public SmaxAttributes getAttributes() {

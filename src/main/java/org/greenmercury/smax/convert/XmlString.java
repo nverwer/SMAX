@@ -48,7 +48,7 @@ public class XmlString {
     try {
       return fromDomElement(DomElement.fromSmax(smaxDocument));
     } catch (DOMException | ClassNotFoundException | InstantiationException | IllegalAccessException | ClassCastException | TransformerException e) {
-      throw new Exception("Serializing the SMAX document failed.", e);
+      throw new Exception("Serializing the SMAX document failed: "+e.getMessage(), e);
     }
   }
 
