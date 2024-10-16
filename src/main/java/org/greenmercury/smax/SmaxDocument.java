@@ -235,15 +235,15 @@ public class SmaxDocument {
   private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing) {
     int newNodeStartPos = newNode.getStartPos();
     int newNodeEndPos = newNode.getEndPos();
-    // A child node of root that contains the newNode.
+    // A child node of subRoot that contains the newNode.
     SmaxElement containingChild = null;
-    // A child-node of root that is intersected by the left of the newNode.
+    // A child-node of subRoot that is intersected by the left of the newNode.
     SmaxElement leftIntersected = null;
-    // A child-node of root that is intersected by the right of the newNode.
+    // A child-node of subRoot that is intersected by the right of the newNode.
     SmaxElement rightIntersected = null;
-    // Index of the left-most node that will be contained in newNode (if any) or -1 (if not (yet) found).
+    // Index in children of subRoot of the left-most node that will be contained in newNode (if any) or -1 (if not (yet) found).
     int firstContainedIndex = -1;
-    // Index of the left-most node that comes after newNode, which is the insert index.
+    // Index in children of subRoot of the left-most node that comes after newNode, which is the insert index.
     int newNodeInsertIndex = 0;
     // Go through the list of children once, from first to last and collect special nodes and indexes.
     // The newNodeInsertIndex points to the current child.
@@ -262,8 +262,14 @@ public class SmaxDocument {
           // The child node contains a larger content-range as the the newNode, so the child contains the newNode.
           containingChild = child;
         } else {
-          // The child node contains the same content-range as the the newNode, so the newNode contains the child.
-          firstContainedIndex = newNodeInsertIndex++;
+          // The child node contains the same content-range as the the newNode.
+          if (balancing == Balancing.INNER) {
+            // The child contains the newNode.
+            containingChild = child;
+          } else {
+            // The newNode contains the child.
+            firstContainedIndex = newNodeInsertIndex++;
+          }
         }
         // No need to look further.
         break;
