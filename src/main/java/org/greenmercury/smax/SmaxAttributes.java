@@ -16,6 +16,10 @@ import org.xml.sax.Attributes;
  */
 public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implements Attributes, NamedNodeMap {
 
+  public interface SmaxAttr extends Attr {
+    public void setNamespaceURI(String uri);
+  }
+
   private SmaxElement parent;
 
   @SuppressWarnings("unused")
@@ -28,18 +32,18 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
   }
 
   @Override
-  public Attr getNamedItem(String name) {
+  public SmaxAttr getNamedItem(String name) {
     return this.item(this.getIndex(name));
   }
 
   @Override
-  public Attr getNamedItemNS(String namespaceURI, String localName) throws DOMException {
+  public SmaxAttr getNamedItemNS(String namespaceURI, String localName) throws DOMException {
     return this.item(this.getIndex(namespaceURI, localName));
   }
 
   @Override
-  public Attr setNamedItem(Node node) throws DOMException {
-    Attr existing = this.getNamedItem(node.getNodeName());
+  public SmaxAttr setNamedItem(Node node) throws DOMException {
+    SmaxAttr existing = this.getNamedItem(node.getNodeName());
     if (existing != null) {
       this.setAttribute(this.getIndex(node.getNodeName()), node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), "CDATA", node.getNodeValue());
       return existing;
@@ -50,8 +54,8 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
   }
 
   @Override
-  public Attr setNamedItemNS(Node node) throws DOMException {
-    Attr existing = this.getNamedItemNS(node.getNamespaceURI(), node.getLocalName());
+  public SmaxAttr setNamedItemNS(Node node) throws DOMException {
+    SmaxAttr existing = this.getNamedItemNS(node.getNamespaceURI(), node.getLocalName());
     if (existing != null) {
       this.setAttribute(this.getIndex(node.getNodeName()), node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), "CDATA", node.getNodeValue());
       return existing;
@@ -62,8 +66,8 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
   }
 
   @Override
-  public Attr removeNamedItem(String name) throws DOMException {
-    Attr existing = this.getNamedItem(name);
+  public SmaxAttr removeNamedItem(String name) throws DOMException {
+    SmaxAttr existing = this.getNamedItem(name);
     if (existing != null) {
       this.removeAttribute(this.getIndex(name));
     }
@@ -71,9 +75,9 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
   }
 
   @Override
-  public Attr removeNamedItemNS(String namespaceURI, String localName) throws DOMException {
+  public SmaxAttr removeNamedItemNS(String namespaceURI, String localName) throws DOMException {
     int index = this.getIndex(namespaceURI, localName);
-    Attr existing = this.item(index);
+    SmaxAttr existing = this.item(index);
     if (existing != null) {
       this.removeAttribute(index);
     }
@@ -81,10 +85,10 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
   }
 
   @Override
-  public Attr item(int index) {
+  public SmaxAttr item(int index) {
     if (index < 0 || index >= this.getLength()) return null;
     // Returns a node that corresponds to a single attribute.
-    return new Attr() {
+    return new SmaxAttr() {
       @Override
       public String getNodeName() {
         return SmaxAttributes.this.getQName(index);
@@ -181,6 +185,10 @@ public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implement
       @Override
       public String getNamespaceURI() {
         return SmaxAttributes.this.getURI(index);
+      }
+      @Override
+      public void setNamespaceURI(String uri) {
+        SmaxAttributes.this.setURI(index, uri);
       }
       @Override
       public String getPrefix() {

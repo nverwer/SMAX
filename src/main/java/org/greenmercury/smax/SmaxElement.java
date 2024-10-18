@@ -1,8 +1,10 @@
 package org.greenmercury.smax;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.greenmercury.smax.SmaxAttributes.SmaxAttr;
 import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -220,7 +222,7 @@ public class SmaxElement implements org.w3c.dom.Element {
    */
   public SmaxElement setAttributes(Attributes attributes) {
     this.attributes = new SmaxAttributes(this);
-    if (attributes != null) ((AttributesImpl) this.attributes).setAttributes(attributes);
+    if (attributes != null) this.attributes.setAttributes(attributes);
     return this;
   }
 
@@ -260,7 +262,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * Add a CDATA attribute without namespace to this SMAX node.
+   * Add a CDATA attribute with or without namespace to this SMAX node.
    * @param localName
    * @param value
    * @return  the {@code SmaxElement} itself
@@ -271,15 +273,44 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * Add a CDATA attribute without namespace to this SMAX node, override.
-   * @param localName
+   * Add a CDATA attribute with or without namespace to this SMAX node, override.
+   * @param name
    * @param value
    * @return  the {@code SmaxElement} itself
    */
   @Override
-  public void setAttribute(String localName, String value) {
+  public void setAttribute(String name, String value) {
     try {
-      this.setAttribute("", localName, localName, "CDATA", value);
+      int prefixColonIndex = name.indexOf(':');
+      String prefix = (prefixColonIndex < 0) ? null : name.substring(0, prefixColonIndex);
+      String localName = (prefixColonIndex < 0) ? name : name.substring(prefixColonIndex+1);
+      if ("xmlns".equals(prefix)) {
+        // This is not a real attribute, but a namespace declaration.
+        String currentNamespaceUri = this.lookupNamespaceURI(prefix);
+        if (currentNamespaceUri == null) {
+          int namespaceCount = this.getNamespacePrefixMappings().length;
+          this.namespacePrefixMappings = Arrays.copyOf(namespacePrefixMappings, namespaceCount + 1);
+          this.namespacePrefixMappings[namespaceCount] = new NamespacePrefixMapping(localName, value);
+          // If this is a new namespace, there may already be an attribute using its prefix.
+          for (int i = 0; i < attributes.getLength(); ++i) {
+            SmaxAttr attr = attributes.item(i);
+            if (localName.equals(attr.getPrefix())) {
+              attr.setNamespaceURI(value);
+            }
+          }
+        } else if (!currentNamespaceUri.equals(value)) {
+          throw new RuntimeException("The namespace URIs for the prefix '"+prefix+"' are different: '"+currentNamespaceUri+"' and '"+value+"'.");
+        }
+      } else if ("xml".equals(prefix)) {
+        // This is a special XML attribute, with an implicit namespace URI.
+        this.setAttribute(Attribute.XML_URI, localName, name, "CDATA", value);
+      } else if (prefix != null) {
+        // A normal attribute in a namespace.
+        this.setAttribute(this.lookupNamespaceURI(prefix), localName, name, "CDATA", value);
+      } else {
+        // A normal attribute without namespace.
+        this.setAttribute("", localName, localName, "CDATA", value);
+      }
     } catch (SmaxException e) {
       throw new RuntimeException(e);
     }
@@ -303,11 +334,10 @@ public class SmaxElement implements org.w3c.dom.Element {
    * @return an array of namespace prefix mappings
    */
   public NamespacePrefixMapping[] getNamespacePrefixMappings() {
-    if (namespacePrefixMappings != null) {
-      return namespacePrefixMappings;
-    } else {
-      return new NamespacePrefixMapping[0];
+    if (namespacePrefixMappings == null) {
+      namespacePrefixMappings = new NamespacePrefixMapping[0];
     }
+    return namespacePrefixMappings;
   }
 
   /**

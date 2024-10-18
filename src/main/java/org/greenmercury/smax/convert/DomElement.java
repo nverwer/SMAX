@@ -3,6 +3,7 @@ package org.greenmercury.smax.convert;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.greenmercury.smax.Attribute;
 import org.greenmercury.smax.NamespacePrefixMapping;
 import org.greenmercury.smax.SmaxContent;
 import org.greenmercury.smax.SmaxDocument;
@@ -24,10 +25,6 @@ import org.xml.sax.Attributes;
  * @author Rakensi
  */
 public class DomElement {
-
-  private static final String XMLNS_URI = "http://www.w3.org/2000/xmlns/";
-  private static final String XML_URI = "http://www.w3.org/XML/1998/namespace";
-  private static final String XMLNS_PREFIX = "xmlns";
 
   /**
    * Construct a SMAX document from a DOM element.
@@ -81,15 +78,15 @@ public class DomElement {
       Node attribute = domAttributes.item(i);
       int prefixColonIndex = attribute.getNodeName().indexOf(':');
       String prefix = (prefixColonIndex < 0) ? null : attribute.getNodeName().substring(0, prefixColonIndex);
-      if (XMLNS_URI.equals(attribute.getNamespaceURI())) {
+      if (Attribute.XMLNS_URI.equals(attribute.getNamespaceURI())) {
         // This is not a real attribute, but a namespace declaration.
-        String declaredPrefix = XMLNS_PREFIX.equals(attribute.getNodeName()) ? "" : attribute.getLocalName();
+        String declaredPrefix = Attribute.XMLNS_PREFIX.equals(attribute.getNodeName()) ? "" : attribute.getLocalName();
         if (! elementPrefix.equals(declaredPrefix)) {
           namespaces.add(new NamespacePrefixMapping(declaredPrefix, attribute.getNodeValue()));
         }
       } else if ("xml".equals(prefix)) {
         // This is a special XML attribute, with an implicit namespace URI.
-        smaxElement.setAttribute(XML_URI, attribute.getLocalName(), attribute.getNodeName(), "CDATA", attribute.getTextContent());
+        smaxElement.setAttribute(Attribute.XML_URI, attribute.getLocalName(), attribute.getNodeName(), "CDATA", attribute.getTextContent());
       } else {
         // This is a real attribute.
         smaxElement.setAttribute(attribute.getNamespaceURI(), attribute.getLocalName(), attribute.getNodeName(), "CDATA", attribute.getTextContent());
