@@ -191,7 +191,18 @@ public class SmaxDocument {
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
    */
   public void insertMarkup(SmaxElement newNode, Balancing balancing) {
-    insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos());
+    insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), false);
+  }
+
+  /**
+   * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
+   * @param newNode a SmaxElement that must not have children.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
+   * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
+   */
+  public void insertMarkup(SmaxElement newNode, Balancing balancing, boolean sameRangeInner) {
+    insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), sameRangeInner);
   }
 
   /**
@@ -203,6 +214,19 @@ public class SmaxDocument {
    * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
    */
   public void insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos) {
+    insertMarkup(newNode, balancing, startPos, endPos, false);
+  }
+
+  /**
+   * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
+   * @param newNode a SmaxElement that must not have children.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
+   * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
+   */
+  public void insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, boolean sameRangeInner) {
     if (newNode.getChildren() != null && !newNode.getChildren().isEmpty()) {
       throw new IllegalArgumentException("Inserted SmaxElement must have no children.");
     }
@@ -215,7 +239,7 @@ public class SmaxDocument {
       newNode.setStartPos(newNode.getEndPos());
     }
     // Insert the node.
-    insertMarkupInto(newNode, markup, balancing);
+    insertMarkupInto(newNode, markup, balancing, sameRangeInner);
     // Adjust namespace prefix.
     if (newNode.getNamespaceUri() != null && !newNode.hasNamespacePrefix()) {
       String prefix = newNode.lookupPrefix(newNode.getNamespaceUri());
@@ -230,9 +254,10 @@ public class SmaxDocument {
    * @param newNode a SmaxElement that must not have child elements.
    * @param subRoot the root of the sub-tree.
    * @param balancing the balancing strategy for intersecting nodes.
+   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
    * For START and END balancing strategies, the newNode character span must already be collapsed.
    */
-  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing) {
+  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, boolean sameRangeInner) {
     int newNodeStartPos = newNode.getStartPos();
     int newNodeEndPos = newNode.getEndPos();
     // A child node of subRoot that contains the newNode.
@@ -263,11 +288,14 @@ public class SmaxDocument {
           containingChild = child;
         } else {
           // The child node contains the same content-range as the the newNode.
-          if (balancing == Balancing.INNER) {
-            // The child contains the newNode.
+          // This is not really an intersection, and there is no clearly correct way to nest these nodes.
+          // To nest the child inside the new node: firstContainedIndex = newNodeInsertIndex++;
+          // To nest the new node inside the child: containingChild = child;
+          if (sameRangeInner) {
+            // Nest the newNode inside the child.
             containingChild = child;
           } else {
-            // The newNode contains the child.
+            // Nest the child inside the new node.
             firstContainedIndex = newNodeInsertIndex++;
           }
         }
@@ -338,7 +366,7 @@ public class SmaxDocument {
     }
     if (containingChild != null) {
       // Push newNode into containing child-node.
-      insertMarkupInto(newNode, containingChild, balancing);
+      insertMarkupInto(newNode, containingChild, balancing, sameRangeInner);
     } else {
       // Move contained child-nodes into the newNode.
       if (firstContainedIndex >= 0 && newNodeInsertIndex > firstContainedIndex) {
