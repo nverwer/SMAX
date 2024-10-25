@@ -419,6 +419,7 @@ public class SmaxElement implements org.w3c.dom.Element {
 
   /**
    * @return the children of this node in document order
+   * Note that this is not a deep copy of the children. If the children change, the result of this function changes.
    */
   public List<SmaxElement> getChildren() {
     return this.children;

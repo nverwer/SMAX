@@ -186,7 +186,7 @@ public class SmaxDocument {
 
   /**
    * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
-   * @param newNode a SmaxElement that must not have children.
+   * @param newNode a SmaxElement that should not have children.
    * @param balancing the balancing strategy for intersecting nodes.
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
    */
@@ -196,7 +196,7 @@ public class SmaxDocument {
 
   /**
    * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
-   * @param newNode a SmaxElement that must not have children.
+   * @param newNode a SmaxElement that should not have children.
    * @param balancing the balancing strategy for intersecting nodes.
    * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
@@ -207,7 +207,7 @@ public class SmaxDocument {
 
   /**
    * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
-   * @param newNode a SmaxElement that must not have children.
+   * @param newNode a SmaxElement that should not have children.
    * @param balancing the balancing strategy for intersecting nodes.
    * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
    * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
@@ -218,8 +218,8 @@ public class SmaxDocument {
   }
 
   /**
-   * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
-   * @param newNode a SmaxElement that must not have children.
+   * Insert a {@code SmaxElement} into the markup tree of a {@code SmaxDocument}.
+   * @param newNode a SmaxElement.
    * @param balancing the balancing strategy for intersecting nodes.
    * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
    * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
@@ -227,9 +227,8 @@ public class SmaxDocument {
    * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
    */
   public void insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, boolean sameRangeInner) {
-    if (newNode.getChildren() != null && !newNode.getChildren().isEmpty()) {
-      throw new IllegalArgumentException("Inserted SmaxElement must have no children.");
-    }
+    // Make a shallow copy so the children of the original newNode are not changed.
+    newNode = newNode.shallowCopy();
     // Set the absolute start and end positions.
     newNode.setStartPos(markup.getStartPos() + startPos).setEndPos(markup.getStartPos() + endPos);
     // Collapse the newNode character span for START or END markers.
@@ -251,11 +250,12 @@ public class SmaxDocument {
 
   /**
    * Insert a SmaxElement into a sub-tree.
-   * @param newNode a SmaxElement that must not have child elements.
+   * @param newNode a SmaxElement that should not have child elements.
    * @param subRoot the root of the sub-tree.
    * @param balancing the balancing strategy for intersecting nodes.
    * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
    * For START and END balancing strategies, the newNode character span must already be collapsed.
+   * If {@code newNode} has children, they will be changed, and existing children may be lost.
    */
   private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, boolean sameRangeInner) {
     int newNodeStartPos = newNode.getStartPos();
@@ -377,6 +377,33 @@ public class SmaxDocument {
       // Insert the newNode into the root.
       subRoot.insertChild(newNodeInsertIndex, newNode);
     }
+  }
+
+  /**
+   * Merge the markup from the {@code newMarkup} document into the markup of the {@code oldMarkup} document.
+   * This only works if both documents have exactly the same {@code SmaxContent}, so their text content is the same.
+   * @param newMarkup the new markup that will be merged into the existing markup.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * @throws SmaxException
+   */
+  public void mergeMarkup(SmaxDocument newMarkup, Balancing balancing)
+      throws SmaxException
+  {
+    if (newMarkup.content != this.content) {
+      throw new SmaxException("mergeMarkup: The text content of the parameter document must be the same as the text content of the current document.");
+    }
+    mergeMarkup(newMarkup.markup, balancing);
+  }
+
+  /**
+   * Recursively insert {@code newElement} and its children into {@code oldMarkup}.
+   * @param newElement the new markup that will be merged into the existing markup.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * The caller is responsible for ensuring that newElement is defined on the same content as the current document.
+   */
+  public void mergeMarkup(SmaxElement newElement, Balancing balancing) {
+    this.insertMarkup(newElement, balancing, true);
+    newElement.getChildren().forEach(child -> mergeMarkup(child, balancing));
   }
 
 }
