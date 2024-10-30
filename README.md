@@ -1,23 +1,25 @@
 # SMAX (Separated Markup API for XML)
 
-The standard XML processing APIs, such as DOM and SAX (and LINQ, if you use .net) view an XML document,
-including its text content, as a tree. The same is true for implementations of XSLT, XPath and XQuery.
-An XML document tree consists of nodes, where the text content is distributed across different nodes at different
-levels in the tree.
+The standard XML processing APIs, such as DOM and SAX (and LINQ, if you use .net) view an XML document, including its text content, as a tree.
+The same is true for implementations of XSLT, XPath and XQuery.
+An XML document tree consists of nodes, where the text content is distributed across different leaves at different levels in the tree.
 
 With the tree representation, it is possible to work on the complete text content of a document (or element),
 but this will lose the structure of the document.
 There are scenarios where text that potentially goes beyond element boundaries must be processed without losing the existing document structure.
 Sometimes, this text processing will generate new XML elements that must be merged into the existing structure.
 
-In order to be able to process the document text in a linear way, retaining and modifying the structure (markup),
-SMAX (Separated Markup API for XML) was designed.
+In order to be able to process the document text in a linear way, retaining and modifying the structure (markup), SMAX (Separated Markup API for XML) was designed.
 As the name indicates, SMAX treats the markup (element structure) and text of an XML document separately.
-A typical use case for SMAX is text analysis and the addition of additional markup around matched
-text fragments.
+A typical use case for SMAX is text analysis and the addition of additional markup around matched text fragments.
 
 SMAX makes the structure of an XML document transparent to text processing functions.
 This is at the basis of ['transparent XML'](https://www.xmlprague.cz/day3-2024/#iXML).
+
+# Building
+
+Make a copy of this repository, and do `maven install`.
+This should make the SMAX jar available for other projects, like [basex-waxeye](https://github.com/nverwer/basex-waxeye), [basex-ner-xar](https://github.com/nverwer/basex-ner-xar), [exist-ixml-xar](https://github.com/nverwer/exist-ixml-xar), and others.
 
 # Java classes
 
@@ -56,12 +58,14 @@ See the javadoc for available balancing strategies.
 
 # To do / known bugs and features
 
-Comments and processing instructions are not part of SMAX and will be ignored.
+There will be documentation on balancing, merging SMAX documents, and other SMAX features.
+
+Comments and processing instructions are not (yet) part of SMAX and will be ignored.
 
 CDATA sections, entities and entity references are ignored and will become part of text content.
 
 # Notes
 
 This project contains parts of the larger [SPEAT](https://github.com/nverwer/SPEAT) project.
-These parts are for specific uses within other frameworks.
-Work on SPEAT has been suspended.
+These parts are for specific uses within other libraries.
+Work on SPEAT has been suspended, and its SMAX implementation is obsolete.
