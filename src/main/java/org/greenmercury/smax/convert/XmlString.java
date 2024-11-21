@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -62,6 +63,17 @@ public class XmlString {
    */
   public static Element toDomElement(String xmlString) throws ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    try {
+      // Make the parser namespace aware.
+      factory.setNamespaceAware(true);
+      factory.setFeature("http://xml.org/sax/features/namespaces", true);
+      factory.setFeature("http://xml.org/sax/features/namespace-prefixes", true);
+      // Protect against well-known XML attacks.
+      factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+      factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+    } catch (ParserConfigurationException pce) {}
+    // Get a document builder and parse the document.
     DocumentBuilder builder = factory.newDocumentBuilder();
     InputSource is = new InputSource(new StringReader(xmlString));
     Document xmlDoc = builder.parse(is);
