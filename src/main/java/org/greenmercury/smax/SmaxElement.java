@@ -359,7 +359,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   public String lookupPrefix(String namespaceURI) {
     if (namespacePrefixMappings != null) {
       for (NamespacePrefixMapping nspMapping : namespacePrefixMappings) {
-        if (nspMapping.uri.equals(namespaceURI)) {
+        if (namespaceURI.equals(nspMapping.uri)) {
           // Never allow an empty namespace prefix.
           return ("".equals(nspMapping.prefix)) ? null : nspMapping.prefix;
         }
