@@ -93,7 +93,7 @@ public class DomElement {
         }
       } else {
         // This is a real attribute.
-        // Some implementations (BXNode in BaseX) do not provide namespace declarations as attributes, so we must extract namespaces from attributes.
+        // Some implementations (BXNode in BaseX) do not provide namespace declarations as xmlns attributes, so we must extract namespaces from attributes.
         if (! "".equals(attributePrefix) && ! namespaces.containsKey(attributePrefix)) {
           namespaces.put(attributePrefix, attributeNamespace);
         }
