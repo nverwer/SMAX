@@ -291,7 +291,7 @@ public class SmaxDocument {
           // This is not really an intersection, and there is no clearly correct way to nest these nodes.
           // To nest the child inside the new node: firstContainedIndex = newNodeInsertIndex++;
           // To nest the new node inside the child: containingChild = child;
-          if (sameRangeInner) {
+          if (sameRangeInner || balancing == Balancing.INNER) {
             // Nest the newNode inside the child.
             containingChild = child;
           } else {

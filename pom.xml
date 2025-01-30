@@ -5,10 +5,10 @@
   
   <groupId>org.greenmercury</groupId>
   <artifactId>SMAX</artifactId>
-  <version>1.0.7</version>
+  <version>1.0.8</version>
   <packaging>jar</packaging>
 
-  <name>Simple Pipelines of Event API Transformers</name>
+  <name>Separated Markup API for XML</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
