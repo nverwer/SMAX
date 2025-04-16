@@ -16,8 +16,24 @@ import org.xml.sax.Attributes;
  */
 public class SmaxAttributes extends org.xml.sax.helpers.AttributesImpl implements Attributes, NamedNodeMap {
 
-  public interface SmaxAttr extends Attr {
-    public void setNamespaceURI(String uri);
+  public abstract class SmaxAttr implements Attr {
+
+    public abstract void setNamespaceURI(String uri);
+
+    @Override
+      public String toString() {
+        StringBuilder sb = new StringBuilder();
+        String nsUri = this.getNamespaceURI();
+        sb.append("@");
+        if (nsUri != null && nsUri.length() > 0) {
+          sb.append("{").append(nsUri).append("}");
+        }
+        sb.append(this.getNodeName());
+        sb.append("=");
+        sb.append(this.getNodeValue());
+        return sb.toString();
+      }
+
   }
 
   private SmaxElement parent;

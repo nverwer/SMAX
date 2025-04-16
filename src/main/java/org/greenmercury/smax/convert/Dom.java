@@ -20,11 +20,11 @@ import org.w3c.dom.bootstrap.DOMImplementationRegistry;
 import org.xml.sax.Attributes;
 
 /**
- * SmaxDocument conversions to and from org.w3c.dom.Element
+ * SmaxDocument conversions to and from org.w3c.dom.Element and org.w3c.dom.Document.
  *
  * @author Rakensi
  */
-public class DomElement {
+public class Dom {
 
   /**
    * Construct a SMAX document from a DOM element.
@@ -32,14 +32,38 @@ public class DomElement {
    * @throws SmaxException
    */
   public static SmaxDocument toSmax(Element element) throws SmaxException {
-    /**
-     * A map from prefixes to namespace-URIs that are declared in a DOM element.
+    /* A map from prefixes to namespace-URIs that are declared in a DOM element.
      * We use one instance to avoid making a new one for every element.
      */
     Map<String, String> namespaces = new HashMap<String, String>();
 
-    /**
-     * The text content of the parsed document up to the current parse position.
+    /* The text content of the parsed document up to the current parse position.
+     * For very large documents, something else than a StringBuffer must be used to hold text content.
+     * A StringBuffer is used, because it is thread-safe. A StringBuilder is faster, but not thread-safe.
+     */
+    StringBuffer currentContent = new StringBuffer();
+
+    SmaxElement markup = domToSmax(element, currentContent, namespaces);
+    return new SmaxDocument(markup, currentContent);
+  }
+
+  /**
+   * Construct a SMAX document from a DOM element.
+   * @param element
+   * @throws SmaxException
+   */
+  public static SmaxDocument toSmax(Document document) throws SmaxException {
+    /* The root element of the document.
+     * This is the element that will be converted to SMAX.
+     */
+    Element element = document.getDocumentElement();
+
+    /* A map from prefixes to namespace-URIs that are declared in a DOM element.
+     * We use one instance to avoid making a new one for every element.
+     */
+    Map<String, String> namespaces = new HashMap<String, String>();
+
+    /* The text content of the parsed document up to the current parse position.
      * For very large documents, something else than a StringBuffer must be used to hold text content.
      * A StringBuffer is used, because it is thread-safe. A StringBuilder is faster, but not thread-safe.
      */
@@ -64,7 +88,6 @@ public class DomElement {
     String elementName = domElement.getNodeName();
     // domElement.getPrefix() does not work in all implementations (specifically, BXNode in BaseX)
     String elementPrefix = (elementName.contains(":")) ? elementName.substring(0, elementName.indexOf(':')) : "";
-    //if (elementPrefix == null) elementPrefix = "";
     // If the element is in a namespace, add it to the namespaces declared on this element.
     String elementNamespace = domElement.getNamespaceURI();
     if (elementNamespace !=null && !"".equals(elementNamespace)) {
@@ -97,10 +120,10 @@ public class DomElement {
         if (! "".equals(attributePrefix) && ! namespaces.containsKey(attributePrefix)) {
           namespaces.put(attributePrefix, attributeNamespace);
         }
-        smaxElement.setAttribute(attribute.getNamespaceURI(), attribute.getLocalName(), attributeName, "CDATA", attribute.getTextContent());
+        smaxElement.setAttribute(attributeNamespace, attributeLocalName, attributeName, "CDATA", attribute.getTextContent());
       }
     }
-    // Set the namespaces.
+    // Collect the namespaces and make them into namespace prefix mappings on the SMAX element.
     if (namespaces.size() > 0) {
       NamespacePrefixMapping[] namespacePrefixMappings =
           namespaces.entrySet().stream().
@@ -148,7 +171,7 @@ public class DomElement {
    * @throws DOMException
    */
   public static Document documentFromSmax(SmaxDocument smaxDocument) throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException {
-    Document domDocument = DOMImplementationRegistry.newInstance().getDOMImplementation("XML 1.0").createDocument(null, null, null);
+    Document domDocument = DOMImplementationRegistry.newInstance().getDOMImplementation("XML 3.0").createDocument(null, null, null);
     Element rootElement = smaxToDom(domDocument, smaxDocument.getMarkup(), smaxDocument.getContent());
     domDocument.appendChild(rootElement);
     return domDocument;
