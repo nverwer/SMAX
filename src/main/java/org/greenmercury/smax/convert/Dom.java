@@ -29,7 +29,6 @@ public class Dom {
   /**
    * Construct a SMAX document from a DOM element.
    * @param element
-   * @throws SmaxException
    */
   public static SmaxDocument toSmax(Element element) throws SmaxException {
     /* A map from prefixes to namespace-URIs that are declared in a DOM element.
@@ -50,7 +49,6 @@ public class Dom {
   /**
    * Construct a SMAX document from a DOM element.
    * @param element
-   * @throws SmaxException
    */
   public static SmaxDocument toSmax(Document document) throws SmaxException {
     /* The root element of the document.
@@ -79,7 +77,6 @@ public class Dom {
    * @param currentContent The text content of the SMAX document.
    * @param namespaces A list of namespace prefix mappings. This is passed to avoid making new lists recursively.
    * @return The converted SMAX element.
-   * @throws SmaxException
    */
   private static SmaxElement domToSmax(Element domElement, StringBuffer currentContent, Map<String, String> namespaces)
     throws SmaxException
@@ -146,33 +143,52 @@ public class Dom {
     return smaxElement;
   }
 
+
   /**
    * Construct a DOM element from a SMAX document.
    * @param smaxDocument
    * @return
-   * @throws ClassCastException
-   * @throws IllegalAccessException
-   * @throws InstantiationException
-   * @throws ClassNotFoundException
-   * @throws DOMException
    */
-  public static Element fromSmax(SmaxDocument smaxDocument) throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException {
-    return documentFromSmax(smaxDocument).getDocumentElement();
+  public static Element fromSmax(SmaxDocument smaxDocument)
+      throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException
+  {
+    return documentFromSmax(smaxDocument, false).getDocumentElement();
+  }
+
+  /**
+   * Construct a DOM element from a SMAX document.
+   * @param smaxDocument
+   * @param elementNSDecl If true, namespace declarations for element namespaces will be added as attributes.
+   * @return
+   */
+  public static Element fromSmax(SmaxDocument smaxDocument, boolean elementNSDecl)
+      throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException
+  {
+    return documentFromSmax(smaxDocument, elementNSDecl).getDocumentElement();
   }
 
   /**
    * Construct a DOM document from a SMAX document.
    * @param smaxDocument
    * @return
-   * @throws ClassCastException
-   * @throws IllegalAccessException
-   * @throws InstantiationException
-   * @throws ClassNotFoundException
-   * @throws DOMException
    */
-  public static Document documentFromSmax(SmaxDocument smaxDocument) throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException {
+  public static Document documentFromSmax(SmaxDocument smaxDocument)
+      throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException
+  {
+    return documentFromSmax(smaxDocument, false);
+  }
+
+  /**
+   * Construct a DOM document from a SMAX document.
+   * @param smaxDocument
+   * @param elementNSDecl If true, namespace declarations for element namespaces will be added as attributes.
+   * @return
+   */
+  public static Document documentFromSmax(SmaxDocument smaxDocument, boolean elementNSDecl)
+      throws DOMException, ClassNotFoundException, InstantiationException, IllegalAccessException, ClassCastException
+{
     Document domDocument = DOMImplementationRegistry.newInstance().getDOMImplementation("XML 3.0").createDocument(null, null, null);
-    Element rootElement = smaxToDom(domDocument, smaxDocument.getMarkup(), smaxDocument.getContent());
+    Element rootElement = smaxToDom(domDocument, smaxDocument.getMarkup(), smaxDocument.getContent(), elementNSDecl);
     domDocument.appendChild(rootElement);
     return domDocument;
   }
@@ -185,15 +201,22 @@ public class Dom {
    * @param charPos
    * @return
    */
-  private static Element smaxToDom(Document domDocument, SmaxElement smaxElement, SmaxContent content) {
+  private static Element smaxToDom(Document domDocument, SmaxElement smaxElement, SmaxContent content, boolean elementNSDecl) {
+    // Namespace declarations for this element, This is a map from prefix to URI.
+    Map<String, String> namespaceDeclarations = new HashMap<String, String>();
     // Create a DOM element.
     String elementNamespace = smaxElement.getNamespaceUri();
-    Element domElement = (elementNamespace == null || "".equals(elementNamespace))
-      ? domDocument.createElement(smaxElement.getLocalName())
-      : domDocument.createElementNS(elementNamespace, smaxElement.getQualifiedName());
+    Element domElement;
+    if (elementNamespace == null || "".equals(elementNamespace)) {
+      domElement = domDocument.createElement(smaxElement.getLocalName());
+    } else {
+      domElement = domDocument.createElementNS(elementNamespace, smaxElement.getQualifiedName());
+      if (elementNSDecl) {
+        namespaceDeclarations.put(smaxElement.getPrefix(), elementNamespace);
+      }
+    }
     // Set the attributes.
     Attributes attributes = smaxElement.getAttributes();
-    Map<String, String> attributeNamespaces = new HashMap<String, String>(); // prefix -> URI
     for (int i = 0, nrAttrs = attributes.getLength(); i < nrAttrs; ++i) {
       String attributeNamespace = attributes.getURI(i);
       String attributeLocalName = attributes.getLocalName(i);
@@ -204,13 +227,13 @@ public class Dom {
         domElement.setAttribute(attributeLocalName, attributes.getValue(i));
       } else {
         domElement.setAttributeNS(attributeNamespace, attributeName, attributes.getValue(i));
-        attributeNamespaces.put(attributePrefix, attributeNamespace);
+        namespaceDeclarations.put(attributePrefix, attributeNamespace);
       }
     }
-    // Add namespace declarations for attributes.
-    if (attributeNamespaces.size() > 0) {
-      attributeNamespaces.entrySet().stream().
-        forEach(entry -> domElement.setAttributeNS(Attribute.XMLNS_URI, Attribute.XMLNS_PREFIX+":"+entry.getKey(), entry.getValue()));
+    // Add namespace declarations.
+    for (Map.Entry<String, String> nsDecl : namespaceDeclarations.entrySet()) {
+      String nsAttributeName = Attribute.XMLNS_PREFIX + ( ( null == nsDecl.getKey() || "".equals(nsDecl.getKey()) ) ? "" : ":"+nsDecl.getKey());
+      domElement.setAttributeNS(Attribute.XMLNS_URI, nsAttributeName, nsDecl.getValue());
     }
     // Add the content.
     int contentPosition = smaxElement.getStartPos();
@@ -220,7 +243,7 @@ public class Dom {
         domElement.appendChild(domDocument.createTextNode(content.substring(contentPosition, childStartPos)));
         contentPosition = childStartPos;
       }
-      domElement.appendChild(smaxToDom(domDocument, child, content));
+      domElement.appendChild(smaxToDom(domDocument, child, content, elementNSDecl));
       contentPosition = child.getEndPos();
     }
     int endPosition = smaxElement.getEndPos();
