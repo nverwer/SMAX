@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -139,7 +140,7 @@ public class SmaxDocument {
   /**
    * Make an iterator over all {@code SmaxElement}s in the document that conform to a given pattern.
    * @param pattern pattern as a {@code SmaxElement} without children
-   * @return an iterable of the matching nodes, in no document order.
+   * @return an {@code Iterable} of the matching nodes, in no document order.
    */
   public Iterable<SmaxElement> matchingNodes(SmaxElement pattern) {
     return () -> {
@@ -189,20 +190,24 @@ public class SmaxDocument {
    * @param newNode a SmaxElement that should not have children.
    * @param balancing the balancing strategy for intersecting nodes.
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public void insertMarkup(SmaxElement newNode, Balancing balancing) {
-    insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), false);
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing) {
+    return insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), null);
   }
 
   /**
    * Insert a {@code SmaxElement} that has no child elements into the markup tree of a {@code SmaxDocument}.
    * @param newNode a SmaxElement that should not have children.
    * @param balancing the balancing strategy for intersecting nodes.
-   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
+   * @param sameRangeReverseBalancing A set of {@code SmaxElement}s.
+   *   If {@code newNode} has the same character range as a node in {@code sameRangeReverseBalancing},
+   *   the {@code balancing} is changed from OUTER to INNER, or from INNER to OUTER.
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public void insertMarkup(SmaxElement newNode, Balancing balancing, boolean sameRangeInner) {
-    insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), sameRangeInner);
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, Set<SmaxElement> sameRangeReverseBalancing) {
+    return insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), sameRangeReverseBalancing);
   }
 
   /**
@@ -212,9 +217,10 @@ public class SmaxDocument {
    * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
    * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
    * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public void insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos) {
-    insertMarkup(newNode, balancing, startPos, endPos, false);
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos) {
+    return insertMarkup(newNode, balancing, startPos, endPos, null);
   }
 
   /**
@@ -223,10 +229,13 @@ public class SmaxDocument {
    * @param balancing the balancing strategy for intersecting nodes.
    * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
    * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
-   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
+   * @param sameRangeReverseBalancing A set of {@code SmaxElement}s.
+   *   If {@code newNode} has the same character range as a node in {@code sameRangeReverseBalancing},
+   *   the {@code balancing} is changed from OUTER to INNER, or from INNER to OUTER.
    * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public void insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, boolean sameRangeInner) {
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, Set<SmaxElement> sameRangeReverseBalancing) {
     // Make a shallow copy so the children of the original newNode are not changed.
     newNode = newNode.shallowCopy();
     // Set the absolute start and end positions.
@@ -238,7 +247,7 @@ public class SmaxDocument {
       newNode.setStartPos(newNode.getEndPos());
     }
     // Insert the node.
-    insertMarkupInto(newNode, markup, balancing, sameRangeInner);
+    insertMarkupInto(newNode, markup, balancing, sameRangeReverseBalancing);
     // Adjust namespace prefix.
     if (newNode.getNamespaceUri() != null && !newNode.hasNamespacePrefix()) {
       String prefix = newNode.lookupPrefix(newNode.getNamespaceUri());
@@ -246,20 +255,26 @@ public class SmaxDocument {
         newNode.setName(newNode.getNamespaceUri(), newNode.getLocalName(), prefix+":"+newNode.getLocalName());
       }
     }
+    return newNode;
   }
 
   /**
    * Insert a SmaxElement into a sub-tree.
-   * @param newNode a SmaxElement that should not have child elements.
+   * @param newNode a SmaxElement that must not have child elements.
+   *   If {@code newNode} has children, an exception will be thrown.
    * @param subRoot the root of the sub-tree.
    * @param balancing the balancing strategy for intersecting nodes.
-   * @param sameRangeInner when true, a node with the same character range as an existing node will be nested inside the existing node.
+   * @param sameRangeReverseBalancing A set of {@code SmaxElement}s.
+   *   If {@code newNode} has the same character range as a node in {@code sameRangeReverseBalancing},
+   *   the {@code balancing} is changed from OUTER to INNER, or from INNER to OUTER.
    * For START and END balancing strategies, the newNode character span must already be collapsed.
-   * If {@code newNode} has children, they will be changed, and existing children may be lost.
    */
-  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, boolean sameRangeInner) {
+  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, Set<SmaxElement> sameRangeReverseBalancing) {
     int newNodeStartPos = newNode.getStartPos();
     int newNodeEndPos = newNode.getEndPos();
+    if (newNode.hasChildNodes()) {
+      throw new IllegalArgumentException("The node that is inserted into a markup tree must not have child elements.");
+    }
     // A child node of subRoot that contains the newNode.
     SmaxElement containingChild = null;
     // A child-node of subRoot that is intersected by the left of the newNode.
@@ -289,13 +304,13 @@ public class SmaxDocument {
         } else {
           // The child node contains the same content-range as the the newNode.
           // This is not really an intersection, and there is no clearly correct way to nest these nodes.
-          // To nest the child inside the new node: firstContainedIndex = newNodeInsertIndex++;
-          // To nest the new node inside the child: containingChild = child;
-          if (sameRangeInner || balancing == Balancing.INNER) {
+          // We use the balancing and sameRangeReverseBalancing to determine how to nest the newNode.
+          boolean reverseBalancing = sameRangeReverseBalancing != null && sameRangeReverseBalancing.contains(child);
+          if ( (balancing == Balancing.INNER && !reverseBalancing) || (balancing == Balancing.OUTER && reverseBalancing) ) {
             // Nest the newNode inside the child.
             containingChild = child;
           } else {
-            // Nest the child inside the new node.
+            // Nest the child inside the newNode.
             firstContainedIndex = newNodeInsertIndex++;
           }
         }
@@ -366,7 +381,7 @@ public class SmaxDocument {
     }
     if (containingChild != null) {
       // Push newNode into containing child-node.
-      insertMarkupInto(newNode, containingChild, balancing, sameRangeInner);
+      insertMarkupInto(newNode, containingChild, balancing, sameRangeReverseBalancing);
     } else {
       // Move contained child-nodes into the newNode.
       if (firstContainedIndex >= 0 && newNodeInsertIndex > firstContainedIndex) {
@@ -402,7 +417,7 @@ public class SmaxDocument {
    * The caller is responsible for ensuring that newElement is defined on the same content as the current document.
    */
   public void mergeMarkup(SmaxElement newElement, Balancing balancing) {
-    this.insertMarkup(newElement, balancing, true);
+    this.insertMarkup(newElement, balancing);
     newElement.getChildren().forEach(child -> mergeMarkup(child, balancing));
   }
 

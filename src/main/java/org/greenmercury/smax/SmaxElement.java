@@ -403,7 +403,8 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * Set the parent element of this element.
+   * Set the parent element of this element.'
+   * This should only be used when a node is added to a parent node.
    * @param parentNode
    * @return the {@code SmaxElement} itself
    */
@@ -480,7 +481,7 @@ public class SmaxElement implements org.w3c.dom.Element {
    */
   @Override
   public String toString() {
-    return String.format("<%s %d..%d>", qualifiedName, startPos, endPos);
+    return "<" + qualifiedName + " @" + startPos + ".." + endPos + ">";
   }
 
   /**
