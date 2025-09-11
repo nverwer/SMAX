@@ -292,14 +292,14 @@ public class SmaxDocument {
       int childEndPos = child.getEndPos();
       if (childStartPos <= newNodeStartPos && childEndPos >= newNodeEndPos) {
         // The child node contains at least the same content-range as the the newNode.
-        if (newNodeEndPos == newNodeStartPos && (childStartPos == newNodeStartPos || childEndPos == newNodeEndPos)) {
-          // If the newNode is empty and at the start or end of the child, it is kept outside the child.
-          if (newNodeEndPos == childEndPos) {
-            // If the empty newNode is at the end of child, move it outside (at the child's beginning, it is outside already).
+        if (newNodeEndPos == newNodeStartPos  &&  (childStartPos == newNodeStartPos || childEndPos == newNodeEndPos)) {
+          // If the newNode is empty and at the start or end of the child, it is kept outside the child. If the child is also empty, the newNode comes before the child.
+          if (childStartPos != newNodeStartPos) {
+            // If the empty newNode is not at the start at the end of child, move it outside (at the child's start, it is outside already).
             ++newNodeInsertIndex;
           }
         } else if (childStartPos < newNodeStartPos || childEndPos > newNodeEndPos) {
-          // The child node contains a larger content-range as the the newNode, so the child contains the newNode.
+          // The child node contains a larger content-range than the the newNode, so the child contains the newNode.
           containingChild = child;
         } else {
           // The child node contains the same content-range as the the newNode.

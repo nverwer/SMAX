@@ -2,6 +2,7 @@ package org.greenmercury.smax;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.greenmercury.smax.SmaxAttributes.SmaxAttr;
@@ -13,7 +14,6 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.TypeInfo;
 import org.w3c.dom.UserDataHandler;
 import org.xml.sax.Attributes;
-import org.xml.sax.helpers.AttributesImpl;
 
 /**
  * Representation of an XML element in the markup part of SMAX.
@@ -54,6 +54,7 @@ public class SmaxElement implements org.w3c.dom.Element {
 
   /**
    * Children of this node, which are child elements in the XML.
+   * There are no other children in the markup tree, such as text nodes or comments.
    * They are ordered according to document order.
    * Their startPos - endPos ranges do not overlap.
    */
@@ -68,7 +69,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * Constructor for a {@code SmaxElement} that uses the element name to derive local name and namespace prefix.
+   * Constructor for a {@code SmaxElement} without attributes that uses the qualified name to derive local name and namespace prefix.
    * @param namespaceUri
    * @param qualifiedName
    */
@@ -77,7 +78,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
-   * Constructor for a {@code SmaxElement} that uses the element name to derive local name and namespace prefix.
+   * Constructor for a {@code SmaxElement} with attributes that uses the qualified name to derive local name and namespace prefix.
    * @param namespaceUri
    * @param qualifiedName
    * @param attributes
@@ -413,6 +414,10 @@ public class SmaxElement implements org.w3c.dom.Element {
     return this;
   }
 
+  /**
+   * Get the index of this node in its parent.
+   * @return the index of this node in its parent, or -1 if it has no parent.
+   */
   public int getIndexInParent() {
     if (this.parentNode == null) return -1;
     return this.parentNode.children.indexOf(this);
@@ -427,6 +432,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
+   * Set the children of this node.
    * @param children the children (in document order) to set
    * @return the {@code SmaxElement} itself
    */
@@ -474,6 +480,73 @@ public class SmaxElement implements org.w3c.dom.Element {
       orphan.setParentNode(null);
     }
     return orphans;
+  }
+
+  /**
+   * Insert a new child into this element.
+   * The new child adopts the children of this element between the specified fromIndex, inclusive, and toIndex, exclusive.
+   * @param child
+   * @param fromIndex
+   * @param toIndex
+   */
+  public void insertAdoptingChild(SmaxElement child, int fromIndex, int toIndex) {
+    child.setChildren(this.removeChildren(fromIndex, toIndex));
+    this.insertChild(fromIndex, child);
+  }
+
+  /**
+   * Move this element into another parent element.
+   * This element is removed from its current parent, if any, and added as the last child of the new parent.
+   * @param newParent
+   */
+  public void moveInto(SmaxElement newParent) {
+    if (this.startPos < newParent.startPos || this.endPos > newParent.endPos) {
+      throw new RuntimeException("Cannot move element "+this+" into "+newParent+" because it is outside the range of the new parent.");
+    }
+    if (this.parentNode != null) {
+      this.parentNode.children.remove(this);
+    }
+    newParent.appendChild(this);
+  }
+
+  /** Get the next sibling element in document order.
+   * @return the next sibling element, or null if there is none.
+   */
+  public SmaxElement getNextSiblingElement() {
+    Node nextSibling = this.getNextSibling();
+    while (nextSibling != null) {
+      if (nextSibling instanceof SmaxElement) {
+        return (SmaxElement) nextSibling;
+      }
+      nextSibling = nextSibling.getNextSibling();
+    }
+    return null;
+  }
+
+  /**
+   * Get the next element in document order.
+   * @return the next element in document order, or null if there is none.
+   */
+  public SmaxElement getNextElement() {
+    if (!this.children.isEmpty()) {
+      return this.children.get(0);
+    }
+    Node nextSibling = this.getNextSibling();
+    while (nextSibling != null) {
+      if (nextSibling instanceof SmaxElement) {
+        return (SmaxElement) nextSibling;
+      }
+      nextSibling = nextSibling.getNextSibling();
+    }
+    SmaxElement parent = this.getParentNode();
+    while (parent != null) {
+      nextSibling = parent.getNextSibling();
+      if (nextSibling != null && nextSibling instanceof SmaxElement) {
+        return (SmaxElement) nextSibling;
+      }
+      parent = parent.getParentNode();
+    }
+    return null;
   }
 
   /**
@@ -545,6 +618,7 @@ public class SmaxElement implements org.w3c.dom.Element {
   @Override
   public Node getPreviousSibling() {
     int indexInParent = this.getIndexInParent();
+    if (indexInParent < 0) return null;
     if (indexInParent > 0)
       return this.parentNode.children.get(indexInParent - 1);
     else
@@ -554,8 +628,9 @@ public class SmaxElement implements org.w3c.dom.Element {
   @Override
   public Node getNextSibling() {
     int indexInParent = this.getIndexInParent();
-    int lastIndexInParent = this.parentNode.children.size() - 1;
-    if (indexInParent > 0 && indexInParent < lastIndexInParent)
+    if (indexInParent < 0) return null;
+    int nrChildren = this.parentNode.children.size();
+    if (indexInParent < nrChildren - 1)
       return this.parentNode.children.get(indexInParent + 1);
     else
       return null;
