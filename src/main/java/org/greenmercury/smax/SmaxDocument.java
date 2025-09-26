@@ -270,11 +270,13 @@ public class SmaxDocument {
    * For START and END balancing strategies, the newNode character span must already be collapsed.
    */
   private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, Set<SmaxElement> sameRangeReverseBalancing) {
-    int newNodeStartPos = newNode.getStartPos();
-    int newNodeEndPos = newNode.getEndPos();
     if (newNode.hasChildNodes()) {
       throw new IllegalArgumentException("The node that is inserted into a markup tree must not have child elements.");
     }
+    boolean outerNewNode = balancing == Balancing.OUTER || balancing == Balancing.START || balancing == Balancing.END;
+    int newNodeStartPos = newNode.getStartPos();
+    int newNodeEndPos = newNode.getEndPos();
+    boolean newNodeIsEmpty = newNodeEndPos == newNodeStartPos;
     // A child node of subRoot that contains the newNode.
     SmaxElement containingChild = null;
     // A child-node of subRoot that is intersected by the left of the newNode.
@@ -290,21 +292,31 @@ public class SmaxDocument {
     for (SmaxElement child : subRoot.getChildren()) {
       int childStartPos = child.getStartPos();
       int childEndPos = child.getEndPos();
+      boolean childIsEmpty = childEndPos == childStartPos;
+      // The child comes after the newNode if its start position is greater than the newNode's end position, or equal and newNode can not contain the child.
+      boolean childIsAfterNewNode = childStartPos > newNodeEndPos ||
+          ( childStartPos == newNodeEndPos && ( outerNewNode ? !childIsEmpty : !newNodeIsEmpty ) );
+System.out.println(child.toString() + " is after " + newNode.toString() + ": " + childIsAfterNewNode);
+      if (childIsAfterNewNode) {
+        // No need to look at this and following children, whose start position is after the newNode's end position.
+        break;
+      }
       if (childStartPos <= newNodeStartPos && childEndPos >= newNodeEndPos) {
-        // The child node contains at least the same content-range as the the newNode.
-        if (newNodeEndPos == newNodeStartPos  &&  (childStartPos == newNodeStartPos || childEndPos == newNodeEndPos)) {
-          // If the newNode is empty and at the start or end of the child, it is kept outside the child. If the child is also empty, the newNode comes before the child.
-          if (childStartPos != newNodeStartPos) {
-            // If the empty newNode is not at the start at the end of child, move it outside (at the child's start, it is outside already).
-            ++newNodeInsertIndex;
+        // The child node contains at least the same content-range as the the newNode: `<child>...<newNode>...</newNode>...</child>`.
+        if (newNodeIsEmpty && (childStartPos == newNodeStartPos || childEndPos == newNodeEndPos)) {
+          // The newNode is empty and at the start or end of the child.
+          // For OUTER balancing, the newNode is kept outside the child. If the child is also empty, the newNode comes after the child.
+          if (!outerNewNode) {
+            // For non-outer balancing, the newNode is contained in the child.
+            containingChild = child;
           }
         } else if (childStartPos < newNodeStartPos || childEndPos > newNodeEndPos) {
           // The child node contains a larger content-range than the the newNode, so the child contains the newNode.
           containingChild = child;
         } else {
           // The child node contains the same content-range as the the newNode.
-          // This is not really an intersection, and there is no clearly correct way to nest these nodes.
-          // We use the balancing and sameRangeReverseBalancing to determine how to nest the newNode.
+          // This is not a proper intersection, and there is no clearly correct way to nest these nodes.
+          // Use the balancing and sameRangeReverseBalancing to determine how to nest the newNode.
           boolean reverseBalancing = sameRangeReverseBalancing != null && sameRangeReverseBalancing.contains(child);
           if ( (balancing == Balancing.INNER && !reverseBalancing) || (balancing == Balancing.OUTER && reverseBalancing) ) {
             // Nest the newNode inside the child.
@@ -314,30 +326,36 @@ public class SmaxDocument {
             firstContainedIndex = newNodeInsertIndex++;
           }
         }
-        // No need to look further.
-        break;
-      }
-      // Check if the child node overlaps with the newNode, or is contained in the newNode.
-      if (childStartPos < newNodeEndPos && childEndPos > newNodeStartPos) {
-        if (childStartPos < newNodeStartPos) {
-          leftIntersected = child;
+      } else {
+        // The newNode is not contained in the child, and contains more content at the start or end (or both) of the child.
+        // This means that `childStartPos > newNodeStartPos || childEndPos < newNodeEndPos`.
+        // Check if the child node overlaps with, or is contained within the newNode.
+        // When the child is empty and at the start or end of newNode, it does not overlap, but it may be contained, depending on balancing.
+        boolean overlapsOrIscontained = outerNewNode ?
+            childStartPos <= newNodeEndPos && childEndPos >= newNodeStartPos :
+            childStartPos < newNodeEndPos && childEndPos > newNodeStartPos;
+System.out.println(child.toString() + " overlaps or is contained in " + newNode.toString() + ": " + overlapsOrIscontained);
+        if (overlapsOrIscontained) {
+          // The child is not completely outside the newNode.
+          if (childStartPos < newNodeStartPos) {
+            // There is an overlap at the left side of the newNode: `<child>...<newNode>...</child>...</newNode>`.
+            leftIntersected = child;
+          }
+          if (childEndPos > newNodeEndPos) {
+            // There is an overlap at the right side of the newNode: `<newNode>...<child>...</newNode>...</child>`.
+            rightIntersected = child;
+          }
+          // If neither leftIntersected nor rightIntersected is set, the child is contained within the newNode: `<newNode>...<child>...</child>...</newNode>`.
+          // Set firstContainedIndex if this is the first child that overlaps the newNode.
+          if (firstContainedIndex < 0) {
+            firstContainedIndex = newNodeInsertIndex;
+          }
         }
-        if (childEndPos > newNodeEndPos) {
-          rightIntersected = child;
-        }
-        // Set firstContainedIndex if the child overlaps the newNode.
-        if (firstContainedIndex < 0) {
-          firstContainedIndex = newNodeInsertIndex;
-        }
-      }
-      // Stop when the scan is past the newNode.
-      if (childStartPos >= newNodeEndPos) {
-        break;
       }
       // Update insert index to next child.
       ++newNodeInsertIndex;
     }
-    // Apply the balancing strategy to the special nodes and indexes.
+    // Apply the balancing strategy by adjusting positions, indexes or the containing child.
     switch (balancing) {
     case OUTER:
       if (leftIntersected != null) {
@@ -358,6 +376,7 @@ public class SmaxDocument {
       }
       break;
     case START:
+      break;
     case END:
       break;
     case BALANCE_TO_START:

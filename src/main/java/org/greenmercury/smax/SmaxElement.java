@@ -432,6 +432,15 @@ public class SmaxElement implements org.w3c.dom.Element {
   }
 
   /**
+   * Get the first child element of this node.
+   * @return the first child element of this node, or null if there are no children
+   */
+  public SmaxElement getFirstChildElement() {
+    if (this.children.isEmpty()) return null;
+    return this.children.get(0);
+  }
+
+  /**
    * Set the children of this node.
    * @param children the children (in document order) to set
    * @return the {@code SmaxElement} itself
