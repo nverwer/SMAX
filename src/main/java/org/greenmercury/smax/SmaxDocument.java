@@ -318,12 +318,12 @@ System.out.println(child.toString() + " is after " + newNode.toString() + ": " +
           // This is not a proper intersection, and there is no clearly correct way to nest these nodes.
           // Use the balancing and sameRangeReverseBalancing to determine how to nest the newNode.
           boolean reverseBalancing = sameRangeReverseBalancing != null && sameRangeReverseBalancing.contains(child);
-          if ( (balancing == Balancing.INNER && !reverseBalancing) || (balancing == Balancing.OUTER && reverseBalancing) ) {
+          if ( balancing == (reverseBalancing ? Balancing.OUTER : Balancing.INNER) ) {
             // Nest the newNode inside the child.
             containingChild = child;
           } else {
             // Nest the child inside the newNode.
-            firstContainedIndex = newNodeInsertIndex++;
+            firstContainedIndex = newNodeInsertIndex;
           }
         }
       } else {

@@ -2,6 +2,8 @@ package org.greenmercury.smax.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Set;
+
 import org.greenmercury.smax.Balancing;
 import org.greenmercury.smax.SmaxDocument;
 import org.greenmercury.smax.SmaxElement;
@@ -240,6 +242,138 @@ public class SmaxDocumentInsertMarkupTest {
     assertEquals(expectedOutput, output);
   }
 
+  @Test
+  void test_insertMarkup_overlap_start_1() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.START, 2, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>1<x/>2</p><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_start_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.START, 2, 4);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>1<x/>2</p><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_start_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.START, 3, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><x/><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toStart_1() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.BALANCE_TO_START, 2, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>1<x/>2</p><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toStart_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.BALANCE_TO_START, 2, 4);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>1<x/>2</p><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toStart_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.BALANCE_TO_START, 3, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><x/><r>3</r><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_end_1() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 2, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><q>4<x/>5</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_end_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 2, 4);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><x/><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_end_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 3, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><q>4<x/>5</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toEnd_1() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 2, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><q>4<x/>5</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toEnd_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 2, 4);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><x/><q>45</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_overlap_toEnd_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<doc>0<p>12</p><r>3</r><q>45</q>6</doc>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.END, 3, 5);
+    String output = simplify(document);
+    String expectedOutput = "<doc>0<p>12</p><r>3</r><q>4<x/>5</q>6</doc>";
+    assertEquals(expectedOutput, output);
+  }
+
 
 
   @Test
@@ -250,28 +384,6 @@ public class SmaxDocumentInsertMarkupTest {
     document.insertMarkup(newNode, Balancing.OUTER, 0, 0);
     String output = simplify(document);
     String expectedOutput = "<r><x/><a>.</a></r>";
-    assertEquals(expectedOutput, output);
-  }
-
-  @Test
-  void test_insertMarkup_emptyNewElement_outer_2() throws Exception
-  {
-    SmaxDocument document = XmlString.toSmax("<r><a>.</a></r>");
-    SmaxElement newNode = new SmaxElement("x");
-    document.insertMarkup(newNode, Balancing.OUTER, 1, 1);
-    String output = simplify(document);
-    String expectedOutput = "<r><a>.</a><x/></r>";
-    assertEquals(expectedOutput, output);
-  }
-
-  @Test
-  void test_insertMarkup_emptyNewElement_outer_3() throws Exception
-  {
-    SmaxDocument document = XmlString.toSmax("<r><a/></r>");
-    SmaxElement newNode = new SmaxElement("x");
-    document.insertMarkup(newNode, Balancing.OUTER, 0, 0);
-    String output = simplify(document);
-    String expectedOutput = "<r><a/><x/></r>";
     assertEquals(expectedOutput, output);
   }
 
@@ -287,6 +399,17 @@ public class SmaxDocumentInsertMarkupTest {
   }
 
   @Test
+  void test_insertMarkup_emptyNewElement_outer_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a>.</a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.OUTER, 1, 1);
+    String output = simplify(document);
+    String expectedOutput = "<r><a>.</a><x/></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
   void test_insertMarkup_emptyNewElement_inner_2() throws Exception
   {
     SmaxDocument document = XmlString.toSmax("<r><a>.</a></r>");
@@ -294,6 +417,17 @@ public class SmaxDocumentInsertMarkupTest {
     document.insertMarkup(newNode, Balancing.INNER, 1, 1);
     String output = simplify(document);
     String expectedOutput = "<r><a>.<x/></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_emptyNewElement_outer_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a/></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    document.insertMarkup(newNode, Balancing.OUTER, 0, 0);
+    String output = simplify(document);
+    String expectedOutput = "<r><a/><x/></r>";
     assertEquals(expectedOutput, output);
   }
 
@@ -329,6 +463,30 @@ public class SmaxDocumentInsertMarkupTest {
     document.insertMarkup(newNode, Balancing.INNER, 0, 3);
     String output = simplify(document);
     String expectedOutput = "<r><a/><x>.<c>.</c>.</x><a/></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_emptyElements_outer_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    Set<SmaxElement> sameRangeReverseBalancing = Set.of(document.getMarkup(), document.getMarkup().getFirstChildElement()); // <r>, <a>
+    document.insertMarkup(newNode, Balancing.OUTER, 0, 3, sameRangeReverseBalancing);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_emptyElements_inner_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    Set<SmaxElement> sameRangeReverseBalancing = Set.of(document.getMarkup().getFirstChildElement().getFirstChildElement()); // <b>
+    document.insertMarkup(newNode, Balancing.INNER, 0, 3, sameRangeReverseBalancing);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
     assertEquals(expectedOutput, output);
   }
 
