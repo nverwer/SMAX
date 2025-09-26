@@ -331,7 +331,7 @@ System.out.println(child.toString() + " is after " + newNode.toString() + ": " +
         // This means that `childStartPos > newNodeStartPos || childEndPos < newNodeEndPos`.
         // Check if the child node overlaps with, or is contained within the newNode.
         // When the child is empty and at the start or end of newNode, it does not overlap, but it may be contained, depending on balancing.
-        boolean overlapsOrIscontained = outerNewNode ?
+        boolean overlapsOrIscontained = (outerNewNode && childIsEmpty) ?
             childStartPos <= newNodeEndPos && childEndPos >= newNodeStartPos :
             childStartPos < newNodeEndPos && childEndPos > newNodeStartPos;
 System.out.println(child.toString() + " overlaps or is contained in " + newNode.toString() + ": " + overlapsOrIscontained);
