@@ -296,7 +296,6 @@ public class SmaxDocument {
       // The child comes after the newNode if its start position is greater than the newNode's end position, or equal and newNode can not contain the child.
       boolean childIsAfterNewNode = childStartPos > newNodeEndPos ||
           ( childStartPos == newNodeEndPos && ( outerNewNode ? !childIsEmpty : !newNodeIsEmpty ) );
-System.out.println(child.toString() + " is after " + newNode.toString() + ": " + childIsAfterNewNode);
       if (childIsAfterNewNode) {
         // No need to look at this and following children, whose start position is after the newNode's end position.
         break;
@@ -334,7 +333,6 @@ System.out.println(child.toString() + " is after " + newNode.toString() + ": " +
         boolean overlapsOrIscontained = (outerNewNode && childIsEmpty) ?
             childStartPos <= newNodeEndPos && childEndPos >= newNodeStartPos :
             childStartPos < newNodeEndPos && childEndPos > newNodeStartPos;
-System.out.println(child.toString() + " overlaps or is contained in " + newNode.toString() + ": " + overlapsOrIscontained);
         if (overlapsOrIscontained) {
           // The child is not completely outside the newNode.
           if (childStartPos < newNodeStartPos) {
