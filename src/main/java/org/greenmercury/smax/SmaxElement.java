@@ -503,21 +503,6 @@ public class SmaxElement implements org.w3c.dom.Element {
     this.insertChild(fromIndex, child);
   }
 
-  /**
-   * Move this element into another parent element.
-   * This element is removed from its current parent, if any, and added as the last child of the new parent.
-   * @param newParent
-   */
-  public void moveInto(SmaxElement newParent) {
-    if (this.startPos < newParent.startPos || this.endPos > newParent.endPos) {
-      throw new RuntimeException("Cannot move element "+this+" into "+newParent+" because it is outside the range of the new parent.");
-    }
-    if (this.parentNode != null) {
-      this.parentNode.children.remove(this);
-    }
-    newParent.appendChild(this);
-  }
-
   /** Get the next sibling element in document order.
    * @return the next sibling element, or null if there is none.
    */
@@ -564,6 +549,25 @@ public class SmaxElement implements org.w3c.dom.Element {
   @Override
   public String toString() {
     return "<" + qualifiedName + " @" + startPos + ".." + endPos + ">";
+  }
+
+  /**
+   * Show the subtree at this element. Useful for debugging.
+   * @return
+   */
+  public String toTreeString() {
+    StringBuilder sb = new StringBuilder();
+    _toTreeString(sb, 0);
+    return sb.toString();
+  }
+
+  private void _toTreeString(StringBuilder sb, int level) {
+    for (int i = 0; i <= level; ++i) sb.append("  ");
+    sb.append(this.toString());
+    for (SmaxElement child : this.children) {
+      sb.append("\n");
+      child._toTreeString(sb, level + 1);
+    }
   }
 
   /**
