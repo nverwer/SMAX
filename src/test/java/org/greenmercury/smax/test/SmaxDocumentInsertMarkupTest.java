@@ -456,7 +456,7 @@ public class SmaxDocumentInsertMarkupTest {
   }
 
   @Test
-  void test_insertMarkup_emptyElements_inner_1() throws Exception
+  void test_insertMarkup_emptyElements_inner() throws Exception
   {
     SmaxDocument document = XmlString.toSmax("<r><a/>.<c>.</c>.<a/></r>");
     SmaxElement newNode = new SmaxElement("x");
@@ -467,7 +467,7 @@ public class SmaxDocumentInsertMarkupTest {
   }
 
   @Test
-  void test_insertMarkup_emptyElements_outer_2() throws Exception
+  void test_insertMarkup_sameRangeElements_1() throws Exception
   {
     SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
     SmaxElement newNode = new SmaxElement("x");
@@ -479,7 +479,7 @@ public class SmaxDocumentInsertMarkupTest {
   }
 
   @Test
-  void test_insertMarkup_emptyElements_inner_2() throws Exception
+  void test_insertMarkup_sameRangeElements_2() throws Exception
   {
     SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
     SmaxElement newNode = new SmaxElement("x");
@@ -487,6 +487,67 @@ public class SmaxDocumentInsertMarkupTest {
     document.insertMarkup(newNode, Balancing.INNER, 0, 3, sameRangeReverseBalancing);
     String output = simplify(document);
     String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_sameRangeElements_3() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    Set<SmaxElement> sameRangeReverseBalancing = Set.of(document.getMarkup().getFirstChildElement().getFirstChildElement()); // <b>
+    document.insertMarkup(newNode, Balancing.INNER, 0, 3, sameRangeReverseBalancing);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_sameRangeElements_4() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    Set<SmaxElement> sameRangeReverseBalancing = Set.of(document.getMarkup().getFirstChildElement()); // <a>
+    document.insertMarkup(newNode, Balancing.OUTER, 0, 3, sameRangeReverseBalancing);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_sameRangeElements_5() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    Set<SmaxElement> sameRangeReverseBalancing = Set.of(document.getMarkup().getFirstChildElement().getFirstChildElement()); // <b>
+    document.insertMarkup(newNode, Balancing.OUTER, 0, 3, sameRangeReverseBalancing);
+    String output = simplify(document);
+    // OUTER will not insert an element outside the root element.
+    String expectedOutput = "<r><x><a><b>...</b></a></x></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_within_1() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    SmaxElement within = document.getMarkup().getFirstChildElement(); // <a>
+    document.insertMarkup(newNode, within, Balancing.OUTER, 0, 3);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><x><b>...</b></x></a></r>";
+    assertEquals(expectedOutput, output);
+  }
+
+  @Test
+  void test_insertMarkup_within_2() throws Exception
+  {
+    SmaxDocument document = XmlString.toSmax("<r><a><b>...</b></a></r>");
+    SmaxElement newNode = new SmaxElement("x");
+    SmaxElement within = document.getMarkup().getFirstChildElement().getFirstChildElement(); // <b>
+    document.insertMarkup(newNode, within, Balancing.OUTER, 0, 3);
+    String output = simplify(document);
+    String expectedOutput = "<r><a><b><x>...</x></b></a></r>";
     assertEquals(expectedOutput, output);
   }
 

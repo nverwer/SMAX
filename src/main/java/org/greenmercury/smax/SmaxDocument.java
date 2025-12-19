@@ -1,10 +1,10 @@
 package org.greenmercury.smax;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -206,7 +206,7 @@ public class SmaxDocument {
    * The start and end position of {@code newNode} must be relative to the content of {@code this} SmaxDocument.
    * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, Set<SmaxElement> sameRangeReverseBalancing) {
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, Collection<SmaxElement> sameRangeReverseBalancing) {
     return insertMarkup(newNode, balancing, newNode.getStartPos(), newNode.getEndPos(), sameRangeReverseBalancing);
   }
 
@@ -235,7 +235,7 @@ public class SmaxDocument {
    * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
    * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
    */
-  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, Set<SmaxElement> sameRangeReverseBalancing) {
+  public SmaxElement insertMarkup(SmaxElement newNode, Balancing balancing, int startPos, int endPos, Collection<SmaxElement> sameRangeReverseBalancing) {
     // Make a shallow copy so the children of the original newNode are not changed.
     newNode = newNode.shallowCopy();
     // Set the absolute start and end positions.
@@ -259,6 +259,77 @@ public class SmaxDocument {
   }
 
   /**
+   * Insert a {@code SmaxElement} into the markup tree of a {@code SmaxDocument}.
+   * @param newNode a SmaxElement that will be inserted.
+   * @param subRoot the root of the sub-tree where the newNode will be inserted.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
+   * The {@code subRoot} must be part of the markup tree of {@code this} SmaxDocument and cover the positions {@code startPos} and {@code endPos}.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
+   */
+  public SmaxElement insertMarkup(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, int startPos, int endPos) {
+    // Make a shallow copy so the children of the original newNode are not changed.
+    newNode = newNode.shallowCopy();
+    // Set the absolute start and end positions.
+    newNode.setStartPos(markup.getStartPos() + startPos).setEndPos(markup.getStartPos() + endPos);
+    // Collapse the newNode character span for START or END markers.
+    if (balancing == Balancing.START) {
+      newNode.setEndPos(newNode.getStartPos());
+    } else if (balancing == Balancing.END) {
+      newNode.setStartPos(newNode.getEndPos());
+    }
+    // Insert the node.
+    insertMarkupInto(newNode, subRoot, balancing, null);
+    // Adjust namespace prefix.
+    if (newNode.getNamespaceUri() != null && !newNode.hasNamespacePrefix()) {
+      String prefix = newNode.lookupPrefix(newNode.getNamespaceUri());
+      if (prefix != null) {
+        newNode.setName(newNode.getNamespaceUri(), newNode.getLocalName(), prefix+":"+newNode.getLocalName());
+      }
+    }
+    return newNode;
+  }
+
+  /**
+   * Insert a {@code SmaxElement} into the markup tree of a {@code SmaxDocument}.
+   * @param newNode a SmaxElement that will be inserted.
+   * @param subRoot the root of the sub-tree where the newNode will be inserted.
+   * @param balancing the balancing strategy for intersecting nodes.
+   * @param startPos start position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * @param endPos end position of the content within {@code newNode}, relative to the content of the SmaxDocument.
+   * @param sameRangeReverseBalancing A set of {@code SmaxElement}s.
+   *   If {@code newNode} has the same character range as a node in {@code sameRangeReverseBalancing},
+   *   the {@code balancing} is changed from OUTER to INNER, or from INNER to OUTER.
+   * The {@code startPos} and {@code endPos} position are relative to the content of {@code this} SmaxDocument.
+   * The {@code subRoot} must be part of the markup tree of {@code this} SmaxDocument and cover the positions {@code startPos} and {@code endPos}.
+   * @return A shallow copy of {@code newNode} is returned, because some of its properties are changed.
+   */
+  public SmaxElement insertMarkup(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, int startPos, int endPos, Collection<SmaxElement> sameRangeReverseBalancing) {
+    // Make a shallow copy so the children of the original newNode are not changed.
+    newNode = newNode.shallowCopy();
+    // Set the absolute start and end positions.
+    newNode.setStartPos(markup.getStartPos() + startPos).setEndPos(markup.getStartPos() + endPos);
+    // Collapse the newNode character span for START or END markers.
+    if (balancing == Balancing.START) {
+      newNode.setEndPos(newNode.getStartPos());
+    } else if (balancing == Balancing.END) {
+      newNode.setStartPos(newNode.getEndPos());
+    }
+    // Insert the node.
+    insertMarkupInto(newNode, subRoot, balancing, sameRangeReverseBalancing);
+    // Adjust namespace prefix.
+    if (newNode.getNamespaceUri() != null && !newNode.hasNamespacePrefix()) {
+      String prefix = newNode.lookupPrefix(newNode.getNamespaceUri());
+      if (prefix != null) {
+        newNode.setName(newNode.getNamespaceUri(), newNode.getLocalName(), prefix+":"+newNode.getLocalName());
+      }
+    }
+    return newNode;
+  }
+
+  /**
    * Insert a SmaxElement into a sub-tree.
    * @param newNode a SmaxElement that must not have child elements.
    *   If {@code newNode} has children, an exception will be thrown.
@@ -269,7 +340,7 @@ public class SmaxDocument {
    *   the {@code balancing} is changed from OUTER to INNER, or from INNER to OUTER.
    * For START and END balancing strategies, the newNode character span must already be collapsed.
    */
-  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, Set<SmaxElement> sameRangeReverseBalancing) {
+  private void insertMarkupInto(SmaxElement newNode, SmaxElement subRoot, Balancing balancing, Collection<SmaxElement> sameRangeReverseBalancing) {
     if (newNode.hasChildNodes()) {
       throw new IllegalArgumentException("The node that is inserted into a markup tree must not have child elements.");
     }
